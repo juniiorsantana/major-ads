@@ -364,6 +364,14 @@ serve(async (req: Request) => {
                     dateParams = '&date_preset=last_7d';
                 }
 
+                log('info', 'Insights request details', {
+                    ad_account_id: adAccountId,
+                    date_params: dateParams,
+                    raw_params: { date_start: params.date_start, date_end: params.date_end, date_preset: params.date_preset },
+                    level,
+                    user_id: user.id
+                });
+
                 url = `${BASE}/${adAccountId}/insights?fields=${INSIGHTS_FIELDS}${dateParams}&level=${level}`;
                 break;
             }
@@ -431,6 +439,21 @@ serve(async (req: Request) => {
         let responseData = fbData;
         if (action === 'instagram_accounts') {
             responseData = fbData.instagram_business_account || {};
+        }
+
+        // Debug: Log insights data to diagnose metric discrepancies
+        if (action === 'insights' || action === 'insights_timeseries') {
+            const insightsSummary = fbData.data?.[0] ? {
+                spend: fbData.data[0].spend,
+                impressions: fbData.data[0].impressions,
+                clicks: fbData.data[0].clicks,
+                reach: fbData.data[0].reach,
+                date_start: fbData.data[0].date_start,
+                date_stop: fbData.data[0].date_stop,
+                actions: fbData.data[0].actions,
+                data_count: fbData.data?.length,
+            } : { no_data: true };
+            log('info', 'INSIGHTS RAW DATA', insightsSummary);
         }
 
         const duration = Date.now() - startTime;

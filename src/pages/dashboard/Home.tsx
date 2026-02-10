@@ -17,11 +17,12 @@ import {
     KpiMetricKey,
     KpiCardData,
     ChartDataPoint,
-    InsightsTimeseriesPoint
+    InsightsTimeseriesPoint,
+    AdAccount
 } from '../../types';
 import { useInsightsData, transformInsightsToKpiCards } from '../../hooks/useInsightsData';
 import { metaService } from '../../services/metaService';
-import { Loader2, AlertCircle, WifiOff } from 'lucide-react';
+import { Loader2, AlertCircle, WifiOff, ChevronDown } from 'lucide-react';
 
 // ==========================================
 // Helpers
@@ -155,6 +156,8 @@ const DashboardHome: React.FC = () => {
 
     // Ad Account state
     const [adAccountId, setAdAccountId] = useState<string | null>(null);
+    const [adAccounts, setAdAccounts] = useState<AdAccount[]>([]);
+    const [showAccountSelector, setShowAccountSelector] = useState(false);
     const [loadingAdAccount, setLoadingAdAccount] = useState(true);
     const [adAccountError, setAdAccountError] = useState<string | null>(null);
 
@@ -200,16 +203,8 @@ const DashboardHome: React.FC = () => {
                 return;
             }
 
-            // User is connected - now check cache (skip if forcing refresh)
-            if (!forceRefresh) {
-                const stored = getSelectedAdAccountId();
-                if (stored) {
-                    console.log('[Dashboard] Using cached ad account:', stored);
-                    setAdAccountId(stored);
-                    setLoadingAdAccount(false);
-                    return;
-                }
-            }
+
+            // NOTE: No early-return here — always fetch accounts list for the selector
 
             // Get selected business managers
             let storedBmIds = localStorage.getItem('marketing_pro_active_bm_ids');
@@ -242,15 +237,22 @@ const DashboardHome: React.FC = () => {
             }
 
             // Fetch ad accounts from first business manager
-            const adAccounts = await metaService.getAdAccounts(bmIds[0]);
-            if (adAccounts.length === 0) {
+            const fetchedAccounts = await metaService.getAdAccounts(bmIds[0]);
+            if (fetchedAccounts.length === 0) {
                 setAdAccountError('Nenhuma conta de anúncios encontrada neste Business Manager.');
                 setLoadingAdAccount(false);
                 return;
             }
 
-            // Use first active ad account
-            const activeAccount = adAccounts.find(acc => acc.status === 'ACTIVE') || adAccounts[0];
+            // Store all accounts for the selector
+            setAdAccounts(fetchedAccounts);
+
+            // Use cached account if it exists in the list, otherwise first active
+            const cached = getSelectedAdAccountId();
+            const cachedValid = cached && fetchedAccounts.some(acc => acc.id === cached);
+            const activeAccount = cachedValid
+                ? fetchedAccounts.find(acc => acc.id === cached)!
+                : fetchedAccounts.find(acc => acc.status === 'ACTIVE') || fetchedAccounts[0];
             setAdAccountId(activeAccount.id);
             setSelectedAdAccountId(activeAccount.id);
             setAdAccountError(null); // Clear any previous error
@@ -260,6 +262,14 @@ const DashboardHome: React.FC = () => {
         } finally {
             setLoadingAdAccount(false);
         }
+    };
+
+    // Handle ad account change from selector
+    const handleAdAccountChange = (accountId: string) => {
+        setAdAccountId(accountId);
+        setSelectedAdAccountId(accountId);
+        setShowAccountSelector(false);
+        console.log('[Dashboard] User selected ad account:', accountId);
     };
 
     // Fetch Ad Account on mount
@@ -326,11 +336,46 @@ const DashboardHome: React.FC = () => {
 
             <div className="space-y-6">
                 {/* Page Header */}
-                <header>
-                    <h1 className="text-2xl font-bold text-slate-900">Visão Geral</h1>
-                    <p className="text-slate-500">
-                        Bem-vindo de volta, {user?.email}
-                    </p>
+                <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-900">Visão Geral</h1>
+                        <p className="text-slate-500">
+                            Bem-vindo de volta, {user?.email}
+                        </p>
+                    </div>
+
+                    {/* Ad Account Selector */}
+                    {adAccounts.length > 1 && adAccountId && (
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowAccountSelector(!showAccountSelector)}
+                                className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg hover:border-slate-300 transition-colors text-sm shadow-sm"
+                            >
+                                <span className="text-slate-500">Conta:</span>
+                                <span className="font-medium text-slate-800 max-w-[200px] truncate">
+                                    {adAccounts.find(a => a.id === adAccountId)?.name || adAccountId}
+                                </span>
+                                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${showAccountSelector ? 'rotate-180' : ''}`} />
+                            </button>
+                            {showAccountSelector && (
+                                <div className="absolute right-0 top-full mt-1 w-72 bg-white border border-slate-200 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto">
+                                    {adAccounts
+                                        .filter(acc => acc.status === 'ACTIVE')
+                                        .map(acc => (
+                                            <button
+                                                key={acc.id}
+                                                onClick={() => handleAdAccountChange(acc.id)}
+                                                className={`w-full text-left px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-b-0 ${acc.id === adAccountId ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700'
+                                                    }`}
+                                            >
+                                                <div className="font-medium truncate">{acc.name}</div>
+                                                <div className="text-xs text-slate-400 mt-0.5">{acc.id} • {acc.currency}</div>
+                                            </button>
+                                        ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </header>
 
                 {/* Ad Account Configuration Warning */}

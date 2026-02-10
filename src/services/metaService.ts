@@ -600,19 +600,41 @@ class MetaService {
     try {
       console.log('[MetaService] Fetching insights for:', adAccountId, params);
 
+      // Build params carefully: use datePreset OR dateStart/dateEnd, never both
+      const apiParams: Record<string, string | undefined> = {
+        ad_account_id: adAccountId,
+      };
+
+      if (params?.datePreset) {
+        // Use Meta API's native date_preset (most accurate, respects account timezone)
+        apiParams.date_preset = params.datePreset;
+      } else if (params?.dateStart && params?.dateEnd) {
+        // Use explicit date range only when preset is not available
+        apiParams.date_start = params.dateStart;
+        apiParams.date_end = params.dateEnd;
+      } else {
+        // Fallback: let Edge Function use default last_7d
+        apiParams.date_preset = 'last_7d';
+      }
+
       const response = await callMetaApi<MetaApiResponse<Record<string, unknown>>>(
         'insights',
-        {
-          ad_account_id: adAccountId,
-          date_start: params?.dateStart,
-          date_end: params?.dateEnd,
-          date_preset: params?.datePreset || 'last_7d',
-        }
+        apiParams
       );
 
-      console.log('[MetaService] Insights response:', response.data?.[0] ? 'Data received' : 'No data');
+      const rawData = response.data?.[0] || {};
+      console.log('[MetaService] ===== INSIGHTS RAW RESPONSE =====');
+      console.log('[MetaService] Ad Account:', adAccountId);
+      console.log('[MetaService] Params sent:', JSON.stringify(params));
+      console.log('[MetaService] Raw spend:', rawData.spend);
+      console.log('[MetaService] Raw impressions:', rawData.impressions);
+      console.log('[MetaService] Raw clicks:', rawData.clicks);
+      console.log('[MetaService] Raw reach:', rawData.reach);
+      console.log('[MetaService] Date range:', rawData.date_start, 'to', rawData.date_stop);
+      console.log('[MetaService] Actions:', JSON.stringify(rawData.actions));
+      console.log('[MetaService] ================================');
 
-      return this.parseInsightsResponse(response.data?.[0] || {});
+      return this.parseInsightsResponse(rawData);
     } catch (error) {
       console.error('[MetaService] Failed to fetch insights:', error);
       throw error;
