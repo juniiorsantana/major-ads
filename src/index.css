@@ -1,0 +1,87 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+    /* "Precision" Palette - High Contrast, No Default Blue */
+    --color-brand-50: #fff7ed;
+    --color-brand-100: #ffedd5;
+    --color-brand-200: #fed7aa;
+    --color-brand-300: #fdba74;
+    --color-brand-400: #fb923c;
+    --color-brand-500: #f97316;
+    --color-brand-600: #ea580c;
+    --color-brand-700: #c2410c;
+    --color-brand-800: #9a3412;
+    --color-brand-900: #7c2d12;
+    --color-brand-950: #431407;
+
+    /* Neutral palette (Zinc for colder, tech feel) */
+    --color-neutral-50: #fafafa;
+    --color-neutral-100: #f4f4f5;
+    --color-neutral-200: #e4e4e7;
+    --color-neutral-300: #d4d4d8;
+    --color-neutral-400: #a1a1aa;
+    --color-neutral-500: #71717a;
+    --color-neutral-600: #52525b;
+    --color-neutral-700: #3f3f46;
+    --color-neutral-800: #27272a;
+    --color-neutral-900: #18181b;
+    --color-neutral-950: #09090b;
+
+    /* Surface tokens */
+    --color-surface-1: #ffffff;
+    --color-surface-2: #fafafa;
+    --color-surface-3: #f4f4f5;
+
+    /* Typography */
+    --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+    --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+
+    /* Border Radius */
+    --radius-none: 0;
+    --radius-sm: 2px;
+    --radius: 4px;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --radius-xl: 12px;
+    --radius-2xl: 16px;
+    --radius-full: 9999px;
+
+    /* Shadows */
+    --shadow-tech: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-tech-lg: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    --shadow-tech-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
+}
+
+@layer base {
+    body {
+        @apply bg-neutral-50 text-neutral-900 font-sans antialiased;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        @apply font-display tracking-tight font-bold text-neutral-900;
+    }
+}
+
+@layer components {
+
+    /* Tech/Precision Card Style */
+    .card-tech {
+        @apply bg-white border border-neutral-200 rounded shadow-tech transition-all duration-200;
+    }
+
+    .card-tech:hover {
+        @apply border-neutral-300 shadow-tech-lg;
+    }
+
+    /* Structural Button */
+    .btn-primary {
+        @apply bg-brand-600 text-white font-medium px-4 py-2 rounded-sm shadow-sm hover:bg-brand-500 active:translate-y-[1px] transition-all;
+    }
+}

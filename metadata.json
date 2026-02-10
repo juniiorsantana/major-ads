@@ -1,0 +1,8 @@
+{
+  "name": "Meta Ads SaaS Pro",
+  "description": "A sophisticated SaaS platform for automated Meta Ads management, featuring secure Facebook Login integration, Business Manager asset selection, and AI-powered campaign optimization using Gemini 3.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
