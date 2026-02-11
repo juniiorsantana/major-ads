@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Limpar Autenticação</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 600px;
+            margin: 100px auto;
+            padding: 20px;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+
+        .container {
+            background: #1e293b;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            margin-top: 0;
+            color: #f1f5f9;
+        }
+
+        button {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        button:hover {
+            background: #dc2626;
+        }
+
+        .success {
+            background: #10b981;
+            color: white;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .info {
+            background: #3b82f6;
+            color: white;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        ul {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔧 Limpar Autenticação Corrompida</h1>
+
+        <div class="info">
+            <strong>Esta página irá:</strong>
+            <ul>
+                <li>Limpar TODOS os dados do Supabase</li>
+                <li>Limpar tokens do Meta</li>
+                <li>Limpar cache do navegador</li>
+                <li>Forçar logout completo</li>
+            </ul>
+        </div>
+
+        <button onclick="clearEverything()">🗑️ Limpar TUDO e Resetar</button>
+
+        <div id="success" class="success">
+            ✅ Tudo limpo! Você será redirecionado para a página de login em 2 segundos...
+        </div>
+    </div>
+
+    <script>
+        function clearEverything() {
+            console.log('🧹 Iniciando limpeza completa...');
+
+            // 1. Limpar LocalStorage
+            console.log('📦 Limpando localStorage...');
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key) {
+                    keysToRemove.push(key);
+                }
+            }
+            keysToRemove.forEach(key => localStorage.removeItem(key));
+
+            // 2. Limpar SessionStorage
+            console.log('📦 Limpando sessionStorage...');
+            sessionStorage.clear();
+
+            // 3. Limpar Cookies
+            console.log('🍪 Limpando cookies...');
+            document.cookie.split(";").forEach(function (c) {
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+            });
+
+            // 4. Limpar Cache (se possível)
+            if ('caches' in window) {
+                console.log('💾 Limpando cache...');
+                caches.keys().then(names => {
+                    names.forEach(name => {
+                        caches.delete(name);
+                    });
+                });
+            }
+
+            console.log('✅ Limpeza completa!');
+
+            // Mostrar mensagem de sucesso
+            document.getElementById('success').style.display = 'block';
+
+            // Redirecionar para login após 2 segundos
+            setTimeout(() => {
+                window.location.href = '/login';
+            }, 2000);
+        }
+    </script>
+</body>
+
+</html>

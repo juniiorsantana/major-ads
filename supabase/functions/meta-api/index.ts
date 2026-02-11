@@ -135,7 +135,11 @@ serve(async (req: Request) => {
         const authHeader = req.headers.get('Authorization');
 
         if (!authHeader) {
-            throw new Error('Missing Authorization header');
+            log('warn', 'Missing Authorization header');
+            return new Response(JSON.stringify({ code: 401, message: 'Invalid JWT' }), {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                status: 401,
+            });
         }
 
         const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -143,10 +147,16 @@ serve(async (req: Request) => {
         });
 
         const { data: { user }, error: userError } = await supabase.auth.getUser();
+
         if (userError || !user) {
-            log('warn', 'Unauthorized access attempt');
-            throw new Error('Unauthorized');
+            log('warn', 'JWT validation failed', { error: userError?.message, auth_header_present: !!authHeader });
+            return new Response(JSON.stringify({ code: 401, message: 'Invalid JWT' }), {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                status: 401,
+            });
         }
+
+        log('info', 'User authenticated successfully', { user_id: user.id });
 
         // Rate limiting
         const rateLimit = checkRateLimit(user.id);

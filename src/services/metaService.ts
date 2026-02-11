@@ -126,7 +126,10 @@ async function callMetaApi<T>(action: string, params?: Record<string, string | u
   }
 
   const { data, error } = await supabase.functions.invoke('meta-api', {
-    body: { action, params: cleanParams, app_user_id: storedUser.appUserId }
+    body: { action, params: cleanParams, app_user_id: storedUser.appUserId },
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
   });
 
   if (error) {
