@@ -7,9 +7,11 @@ import { useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import { useAppStore } from '../stores/useAppStore';
+import { toast } from '../hooks/useToast';
 
-const TOKEN_CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutos
-const TOKEN_EXPIRY_THRESHOLD = 15 * 60 * 1000; // Renovar se expira em 15 min
+const TOKEN_CHECK_INTERVAL = 5 * 60 * 1000;
+const TOKEN_EXPIRY_THRESHOLD = 15 * 60 * 1000;
+const TOKEN_WARNING_THRESHOLD = 60 * 60 * 1000; // Avisar quando falta 1h
 
 interface TokenInfo {
     expiresAt: number;
@@ -48,10 +50,20 @@ export function useTokenRefresh() {
             const now = Date.now();
             const timeUntilExpiry = expiresAt - now;
 
+            // Se token expirou
+            if (timeUntilExpiry <= 0) {
+                handleTokenExpired();
+                return;
+            }
+
             // Se token expira em breve, renovar
             if (timeUntilExpiry < TOKEN_EXPIRY_THRESHOLD) {
-                console.log('Token expiring soon, refreshing...');
+                console.log('[TokenRefresh] Token expiring soon, refreshing...');
                 await refreshToken(fbToken);
+            } else if (timeUntilExpiry < TOKEN_WARNING_THRESHOLD) {
+                // Avisar o usuário que o token expira em breve
+                const minutesLeft = Math.round(timeUntilExpiry / 60000);
+                toast.warning(`Token do Facebook expira em ${minutesLeft} minutos. Será renovado automaticamente.`);
             }
         } catch (error) {
             console.error('Token refresh check failed:', error);
@@ -72,7 +84,8 @@ export function useTokenRefresh() {
             }
 
             if (data?.success) {
-                console.log('Token refreshed successfully');
+                console.log('[TokenRefresh] Token refreshed successfully');
+                toast.success('Token do Facebook renovado com sucesso.');
                 return true;
             }
 
@@ -88,12 +101,12 @@ export function useTokenRefresh() {
     };
 
     const handleTokenExpired = useCallback(() => {
-        console.log('Token expired, disconnecting...');
+        console.log('[TokenRefresh] Token expired, disconnecting...');
         setMetaUser(null);
         localStorage.removeItem('meta_ads_connected_user');
 
-        // Mostrar notificação ao usuário (seria bom ter um sistema de toast global)
-        // Por agora, redirecionar para settings
+        toast.error('Sessão Facebook expirada. Por favor, reconecte sua conta.');
+
         navigate('/settings', {
             state: { message: 'Sessão Facebook expirada. Por favor, reconecte.' }
         });

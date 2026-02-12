@@ -4,13 +4,12 @@
  */
 
 import { supabase, isSupabaseConfigured } from './supabaseClient';
-import { facebookLogin, facebookLogout, isFacebookConfigured } from './facebookSDK';
+import { facebookLogin, facebookLogout } from './facebookSDK';
+import { toast } from '../hooks/useToast';
 import {
   BusinessManager, AdAccount, MetaPage, InstagramAccount,
   Campaign, CampaignInsights, InsightsTimeseriesPoint
 } from '../types';
-
-// USE_MOCK removed - now using dynamic runtime check via shouldUseMock() method
 
 // ==========================================
 // Types for API responses
@@ -29,33 +28,6 @@ interface MetaUserInfo {
   name: string;
   email?: string;
 }
-
-// ==========================================
-// Mock Data (fallback when not configured)
-// ==========================================
-
-const mockData = {
-  businesses: [
-    { id: 'bm_1', name: 'Digital Growth Agency', vertical: 'Advertising' },
-    { id: 'bm_2', name: 'Global Retail Corp', vertical: 'E-commerce' },
-  ],
-  adAccounts: [
-    { id: 'act_12345', name: 'Performance Account - Q4', currency: 'USD', status: 'ACTIVE' as const },
-    { id: 'act_67890', name: 'Retargeting Global', currency: 'EUR', status: 'ACTIVE' as const },
-  ],
-  pages: [
-    { id: 'pg_1', name: 'Main Brand Page', category: 'Retail', picture: 'https://picsum.photos/40/40?1' },
-    { id: 'pg_2', name: 'Secondary Store', category: 'Fashion', picture: 'https://picsum.photos/40/40?2' },
-  ],
-  instagrams: [
-    { id: 'ig_1', username: 'brand_official', profile_picture_url: 'https://picsum.photos/40/40?3' },
-  ],
-  campaigns: [
-    { id: 'cp_1', name: 'Winter Clearance 2024', status: 'ACTIVE' as const, objective: 'OUTCOME_SALES', spend: 1250.4, impressions: 45000, clicks: 1200 },
-    { id: 'cp_2', name: 'Brand Awareness - Global', status: 'PAUSED' as const, objective: 'OUTCOME_AWARENESS', spend: 450.0, impressions: 120000, clicks: 350 },
-    { id: 'cp_3', name: 'App Installs - Android', status: 'ACTIVE' as const, objective: 'OUTCOME_APP_PROMOTION', spend: 890.15, impressions: 32000, clicks: 2100 },
-  ],
-};
 
 // ==========================================
 // Helper: Call Edge Function
@@ -168,6 +140,7 @@ async function callMetaApi<T>(action: string, params?: Record<string, string | u
       }
     }
 
+    toast.error(detailedErrorMessage);
     throw new Error(detailedErrorMessage);
   }
 
@@ -182,77 +155,18 @@ function formatDateForApi(date: Date): string {
   return date.toISOString().split('T')[0];
 }
 
-function generateMockTimeseries(
-  dateStart: string,
-  dateEnd: string,
-  breakdown: 'day' | 'week' | 'month'
-): InsightsTimeseriesPoint[] {
-  const start = new Date(dateStart);
-  const end = new Date(dateEnd);
-  const points: InsightsTimeseriesPoint[] = [];
 
-  const incrementDays = breakdown === 'day' ? 1 : breakdown === 'week' ? 7 : 30;
-  const current = new Date(start);
-
-  while (current <= end) {
-    const nextDate = new Date(current);
-    nextDate.setDate(nextDate.getDate() + incrementDays - 1);
-
-    points.push({
-      date_start: formatDateForApi(current),
-      date_stop: formatDateForApi(nextDate > end ? end : nextDate),
-      spend: Math.random() * 500 + 100,
-      impressions: Math.floor(Math.random() * 10000 + 2000),
-      clicks: Math.floor(Math.random() * 500 + 50),
-      ctr: Math.random() * 3 + 0.5,
-      cpm: Math.random() * 15 + 5,
-      cpc: Math.random() * 2 + 0.3,
-      reach: Math.floor(Math.random() * 8000 + 1500),
-      conversions: Math.floor(Math.random() * 50 + 5),
-    });
-
-    current.setDate(current.getDate() + incrementDays);
-  }
-
-  return points;
-}
 
 // ==========================================
 // Meta Service
 // ==========================================
 
 class MetaService {
-  /**
-   * Check if should use mock data (dynamic runtime check)
-   */
-  private shouldUseMock(): boolean {
-    const hasSupabase = isSupabaseConfigured();
-    const hasFacebook = isFacebookConfigured();
-    const useMock = !hasSupabase || !hasFacebook;
-    console.log('[MetaService] Mock check:', { hasSupabase, hasFacebook, useMock });
-    return useMock;
-  }
-
   constructor() {
-    console.log('MetaService Initialized');
-    if (this.shouldUseMock()) {
-      console.warn('Mock mode enabled - Supabase:', isSupabaseConfigured(), 'Facebook:', isFacebookConfigured());
-    }
+    console.log('[MetaService] Initialized');
   }
 
   async login(): Promise<{ userId: string; name: string; email: string; accessToken: string }> {
-    if (this.shouldUseMock()) {
-      console.warn('🔶 Mock mode: Using simulated data. Configure META_APP_ID and Supabase for real API.');
-      await new Promise((r) => setTimeout(r, 1000));
-      const mockUser = {
-        userId: '1015823456789',
-        name: 'Meta Advertiser',
-        email: 'admin@marketing-pro.com',
-        accessToken: 'MOCK_TOKEN',
-      };
-      setStoredMetaUser({ appUserId: 'mock-app-user', metaUserId: mockUser.userId, name: mockUser.name, email: mockUser.email });
-      return mockUser;
-    }
 
     // Step 1: Verify Supabase authentication FIRST
     const { data: { session } } = await supabase.auth.getSession();
@@ -338,14 +252,6 @@ class MetaService {
    * Check if user is already connected to Meta
    */
   async getConnectedUser(): Promise<{ userId: string; name: string; email: string } | null> {
-    if (this.shouldUseMock()) {
-      return {
-        userId: '1015823456789',
-        name: 'Meta Advertiser (Mock)',
-        email: 'admin@marketing-pro.com',
-      };
-    }
-
     const storedUser = getStoredMetaUser();
     if (!storedUser) return null;
 
@@ -361,20 +267,13 @@ class MetaService {
    */
   async logout(): Promise<void> {
     clearStoredMetaUser();
-    if (!this.shouldUseMock()) {
-      await facebookLogout();
-      // We only disconnect from Facebook, NOT the entire app
-      // await supabase.auth.signOut(); 
-    }
+    await facebookLogout();
   }
 
   /**
    * Get Business Managers the user has access to
    */
   async getBusinesses(): Promise<BusinessManager[]> {
-    if (this.shouldUseMock()) {
-      return mockData.businesses;
-    }
 
     try {
       const response = await callMetaApi<MetaApiResponse<{ id: string; name: string; vertical?: string }>>(
@@ -396,9 +295,6 @@ class MetaService {
    * Get Ad Accounts for a Business Manager
    */
   async getAdAccounts(businessId: string): Promise<AdAccount[]> {
-    if (this.shouldUseMock()) {
-      return mockData.adAccounts;
-    }
 
     try {
       const response = await callMetaApi<MetaApiResponse<{ id: string; name: string; currency: string; account_status: number }>>(
@@ -422,9 +318,6 @@ class MetaService {
    * Get Facebook Pages for a Business Manager
    */
   async getPages(businessId: string): Promise<MetaPage[]> {
-    if (this.shouldUseMock()) {
-      return mockData.pages;
-    }
 
     try {
       const response = await callMetaApi<MetaApiResponse<{ id: string; name: string; category: string; picture?: { data?: { url?: string } } }>>(
@@ -448,9 +341,6 @@ class MetaService {
    * Get Instagram Business Accounts linked to a Page
    */
   async getInstagramAccounts(pageId: string): Promise<InstagramAccount[]> {
-    if (this.shouldUseMock()) {
-      return mockData.instagrams;
-    }
 
     try {
       const response = await callMetaApi<{ id: string; username: string; profile_picture_url?: string }>(
@@ -475,9 +365,6 @@ class MetaService {
    * Get Campaigns for an Ad Account
    */
   async getCampaigns(adAccountId: string): Promise<Campaign[]> {
-    if (this.shouldUseMock()) {
-      return mockData.campaigns;
-    }
 
     try {
       console.log('[MetaService] Fetching campaigns with insights for:', adAccountId);
@@ -531,57 +418,22 @@ class MetaService {
     objective: string,
     status: 'ACTIVE' | 'PAUSED' = 'PAUSED'
   ): Promise<{ id: string }> {
-    if (this.shouldUseMock()) {
-      return { id: `cp_${Date.now()}` };
-    }
-
-
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token;
-
-    const { data, error } = await supabase.functions.invoke('meta-api', {
-      body: {
-        action: 'create_campaign',
-        params: { ad_account_id: adAccountId },
-        body: { name, objective, status, special_ad_categories: '[]' },
-      },
-      headers: {
-        Authorization: token ? `Bearer ${token}` : undefined
-      }
+    return callMetaApi<{ id: string }>('create_campaign', {
+      ad_account_id: adAccountId,
     });
-
-    if (error) {
-      console.error('Create Campaign Error:', error);
-      throw new Error(error.message);
-    }
-
-    return data as { id: string };
   }
 
   /**
    * Update campaign status (pause/activate)
    */
   async updateCampaignStatus(campaignId: string, status: 'ACTIVE' | 'PAUSED'): Promise<boolean> {
-    if (this.shouldUseMock()) {
+    try {
+      await callMetaApi('update_campaign', { campaign_id: campaignId });
       return true;
+    } catch (error) {
+      console.error('[MetaService] Failed to update campaign:', error);
+      return false;
     }
-
-
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token;
-
-    const { error } = await supabase.functions.invoke('meta-api', {
-      body: {
-        action: 'update_campaign',
-        params: { campaign_id: campaignId },
-        body: { status },
-      },
-      headers: {
-        Authorization: token ? `Bearer ${token}` : undefined
-      }
-    });
-
-    return !error;
   }
 
   /**
@@ -596,9 +448,6 @@ class MetaService {
       datePreset?: string;
     }
   ): Promise<CampaignInsights> {
-    if (this.shouldUseMock()) {
-      return this.getMockInsights();
-    }
 
     try {
       console.log('[MetaService] Fetching insights for:', adAccountId, params);
@@ -626,16 +475,7 @@ class MetaService {
       );
 
       const rawData = response.data?.[0] || {};
-      console.log('[MetaService] ===== INSIGHTS RAW RESPONSE =====');
-      console.log('[MetaService] Ad Account:', adAccountId);
-      console.log('[MetaService] Params sent:', JSON.stringify(params));
-      console.log('[MetaService] Raw spend:', rawData.spend);
-      console.log('[MetaService] Raw impressions:', rawData.impressions);
-      console.log('[MetaService] Raw clicks:', rawData.clicks);
-      console.log('[MetaService] Raw reach:', rawData.reach);
-      console.log('[MetaService] Date range:', rawData.date_start, 'to', rawData.date_stop);
-      console.log('[MetaService] Actions:', JSON.stringify(rawData.actions));
-      console.log('[MetaService] ================================');
+      console.log('[MetaService] Insights:', { adAccountId, spend: rawData.spend, impressions: rawData.impressions, dateRange: `${rawData.date_start} - ${rawData.date_stop}` });
 
       return this.parseInsightsResponse(rawData);
     } catch (error) {
@@ -653,9 +493,6 @@ class MetaService {
     dateEnd: string,
     breakdown: 'day' | 'week' | 'month' = 'day'
   ): Promise<InsightsTimeseriesPoint[]> {
-    if (this.shouldUseMock()) {
-      return generateMockTimeseries(dateStart, dateEnd, breakdown);
-    }
 
     try {
       const response = await callMetaApi<MetaApiResponse<Record<string, unknown>>>(
@@ -702,23 +539,7 @@ class MetaService {
   // Private Helpers
   // ==========================================
 
-  private getMockInsights(): CampaignInsights {
-    return {
-      spend: Math.random() * 5000 + 500,
-      impressions: Math.floor(Math.random() * 100000 + 10000),
-      clicks: Math.floor(Math.random() * 5000 + 500),
-      cpc: Math.random() * 2 + 0.3,
-      cpm: Math.random() * 15 + 5,
-      ctr: Math.random() * 3 + 1,
-      reach: Math.floor(Math.random() * 80000 + 8000),
-      frequency: Math.random() * 2 + 1,
-      conversions: Math.floor(Math.random() * 200 + 20),
-      conversion_rate: Math.random() * 5 + 1,
-      roas: Math.random() * 4 + 1,
-      cost_per_conversion: Math.random() * 30 + 5,
-      messages_initiated: Math.floor(Math.random() * 100 + 10),
-    };
-  }
+
 
   private parseInsightsResponse(data: Record<string, unknown>): CampaignInsights {
     // Parse actions to extract conversions and messages
@@ -792,10 +613,10 @@ class MetaService {
   }
 
   /**
-   * Check if real API is configured (dynamic)
+   * Check if Supabase is configured
    */
   isConfigured(): boolean {
-    return !this.shouldUseMock();
+    return isSupabaseConfigured();
   }
 }
 

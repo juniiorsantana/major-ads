@@ -130,9 +130,12 @@ export interface KpiLayoutConfig {
 export type DatePeriodPreset =
   | 'today'
   | 'yesterday'
+  | 'today_and_yesterday'
   | 'last_7_days'
-  | 'last_30_days'
-  | 'last_90_days'
+  | 'last_14_days'
+  | 'last_28_days'
+  | 'this_week'
+  | 'last_week'
   | 'this_month'
   | 'last_month'
   | 'custom';

@@ -66,9 +66,50 @@ export class MetaService {
         return this.fetchGraph(`/${adAccountId}/campaigns`, { fields });
     }
 
+    /**
+     * Build Meta API-compatible params from our internal params.
+     * Converts date_start/date_end → time_range JSON, keeps date_preset as-is.
+     * Strips internal-only fields that Meta doesn't recognize.
+     */
+    private buildInsightsParams(params: Record<string, any>): Record<string, string> {
+        const metaParams: Record<string, string> = {};
+
+        // Convert date_start/date_end to Meta's time_range format
+        if (params.date_start && params.date_end) {
+            metaParams.time_range = JSON.stringify({
+                since: params.date_start,
+                until: params.date_end,
+            });
+        } else if (params.date_preset) {
+            metaParams.date_preset = params.date_preset;
+        }
+
+        // Pass through valid Meta Insights params only
+        if (params.level) metaParams.level = params.level;
+        if (params.time_increment) metaParams.time_increment = String(params.time_increment);
+        // Note: params.breakdown (day/week/month) is time grouping, NOT Meta breakdowns.
+        // It's handled via time_increment in getInsightsTimeseries. Do NOT pass as breakdowns.
+
+        return metaParams;
+    }
+
     async getInsights(objectId: string, params: Record<string, any>) {
         const fields = 'spend,impressions,clicks,reach,frequency,cpc,cpm,ctr,cpp,actions,conversions,conversion_values,cost_per_action_type,cost_per_conversion';
-        return this.fetchGraph(`/${objectId}/insights`, { fields, ...params });
+        const metaParams = this.buildInsightsParams(params);
+        console.log(`[MetaService] getInsights ${objectId}`, JSON.stringify(metaParams));
+        return this.fetchGraph(`/${objectId}/insights`, { fields, ...metaParams });
+    }
+
+    async getInsightsTimeseries(objectId: string, params: Record<string, any>) {
+        const fields = 'spend,impressions,clicks,reach,frequency,cpc,cpm,ctr,cpp,actions,conversions,conversion_values,cost_per_action_type,cost_per_conversion';
+        // Force time_increment=1 for per-day breakdown (critical for chart data)
+        const metaParams = this.buildInsightsParams({ ...params, time_increment: '1' });
+        // Remove date_preset when explicit dates exist (time_range takes priority)
+        if (metaParams.time_range) {
+            delete metaParams.date_preset;
+        }
+        console.log(`[MetaService] getInsightsTimeseries ${objectId}`, JSON.stringify(metaParams));
+        return this.fetchGraph(`/${objectId}/insights`, { fields, ...metaParams });
     }
 
     async getCampaignsWithInsights(adAccountId: string) {
@@ -99,6 +140,22 @@ export class MetaService {
         }));
 
         return { data: enriched };
+    }
+
+    async getPages(businessId: string) {
+        return this.fetchGraph(`/${businessId}/owned_pages`, {
+            fields: 'id,name,category,picture{url}',
+        });
+    }
+
+    async getInstagramAccounts(pageId: string) {
+        return this.fetchGraph(`/${pageId}`, {
+            fields: 'instagram_business_account{id,username,profile_picture_url}',
+        });
+    }
+
+    async updateCampaign(campaignId: string, payload: Record<string, unknown>) {
+        return this.fetchGraph(`/${campaignId}`, {}, 'POST', payload);
     }
 
     async createCampaign(adAccountId: string, payload: any) {

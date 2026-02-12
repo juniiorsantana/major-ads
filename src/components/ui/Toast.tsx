@@ -1,57 +1,87 @@
-import React, { useEffect, useState } from 'react';
-import { CheckCircle2, AlertCircle, X, Info } from 'lucide-react';
+/**
+ * Toast Notification Component
+ * Renders global toast notifications with auto-dismiss
+ * Connected to useToast Zustand store for global access
+ */
 
-export type ToastType = 'success' | 'error' | 'info';
+import { useEffect } from 'react';
+import { CheckCircle, XCircle, AlertTriangle, Info, X } from 'lucide-react';
+import { useToastStore, type Toast as ToastData, type ToastType } from '../../hooks/useToast';
 
-interface ToastProps {
-    message: string;
-    type?: ToastType;
-    isVisible: boolean;
-    onClose: () => void;
-    duration?: number;
-}
+const ICON_MAP: Record<ToastType, typeof CheckCircle> = {
+    success: CheckCircle,
+    error: XCircle,
+    warning: AlertTriangle,
+    info: Info,
+};
 
-export const Toast: React.FC<ToastProps> = ({
-    message,
-    type = 'info',
-    isVisible,
-    onClose,
-    duration = 3000,
-}) => {
+const STYLE_MAP: Record<ToastType, string> = {
+    success: 'bg-emerald-50 border-emerald-200 text-emerald-800',
+    error: 'bg-red-50 border-red-200 text-red-800',
+    warning: 'bg-amber-50 border-amber-200 text-amber-800',
+    info: 'bg-blue-50 border-blue-200 text-blue-800',
+};
+
+const ICON_STYLE_MAP: Record<ToastType, string> = {
+    success: 'text-emerald-500',
+    error: 'text-red-500',
+    warning: 'text-amber-500',
+    info: 'text-blue-500',
+};
+
+function ToastItem({ toast }: { toast: ToastData }) {
+    const removeToast = useToastStore((s) => s.removeToast);
+    const Icon = ICON_MAP[toast.type];
+    const duration = toast.duration ?? 4000;
+
     useEffect(() => {
-        if (isVisible) {
-            const timer = setTimeout(() => {
-                onClose();
-            }, duration);
-            return () => clearTimeout(timer);
-        }
-    }, [isVisible, duration, onClose]);
-
-    if (!isVisible) return null;
-
-    const getIcon = () => {
-        switch (type) {
-            case 'success':
-                return <CheckCircle2 className="w-5 h-5 text-emerald-500" />;
-            case 'error':
-                return <AlertCircle className="w-5 h-5 text-red-500" />;
-            default:
-                return <Info className="w-5 h-5 text-blue-500" />;
-        }
-    };
+        if (duration <= 0) return;
+        const timer = setTimeout(() => removeToast(toast.id), duration);
+        return () => clearTimeout(timer);
+    }, [toast.id, duration, removeToast]);
 
     return (
-        <div className="fixed top-6 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-4 fade-in duration-300">
-            <div className="bg-white/90 backdrop-blur-md border border-slate-200 shadow-lg rounded-full px-6 py-3 flex items-center gap-3 min-w-[300px] max-w-md">
-                {getIcon()}
-                <p className="text-sm font-medium text-slate-700 flex-1">{message}</p>
-                <button
-                    onClick={onClose}
-                    className="text-slate-400 hover:text-slate-600 transition-colors"
-                >
-                    <X className="w-4 h-4" />
-                </button>
+        <div
+            className={`flex items-start gap-3 px-4 py-3 rounded-lg border shadow-lg backdrop-blur-sm ${STYLE_MAP[toast.type]}`}
+            style={{ animation: 'slideIn 0.3s ease-out' }}
+            role="alert"
+        >
+            <Icon size={20} className={`shrink-0 mt-0.5 ${ICON_STYLE_MAP[toast.type]}`} />
+            <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium leading-snug">{toast.message}</p>
+                {toast.action && (
+                    <button
+                        onClick={toast.action.onClick}
+                        className="mt-1 text-xs font-semibold underline underline-offset-2 hover:opacity-80 transition-opacity"
+                    >
+                        {toast.action.label}
+                    </button>
+                )}
             </div>
+            <button
+                onClick={() => removeToast(toast.id)}
+                className="shrink-0 p-0.5 rounded hover:bg-black/5 transition-colors"
+                aria-label="Fechar"
+            >
+                <X size={14} />
+            </button>
         </div>
     );
-};
+}
+
+export default function ToastContainer() {
+    const toasts = useToastStore((s) => s.toasts);
+
+    if (toasts.length === 0) return null;
+
+    return (
+        <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-2 max-w-sm w-full pointer-events-auto">
+            {toasts.map((t) => (
+                <ToastItem key={t.id} toast={t} />
+            ))}
+        </div>
+    );
+}
+
+// Keep backward-compat export for existing usage
+export { ToastContainer as Toast };

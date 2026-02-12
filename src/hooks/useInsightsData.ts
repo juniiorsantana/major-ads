@@ -37,22 +37,49 @@ function getDateRangeFromPreset(preset: DatePeriodPreset): { start: Date; end: D
             return { start: yesterday, end: yesterday };
         }
 
+        case 'today_and_yesterday': {
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            return { start: yesterday, end: today };
+        }
+
         case 'last_7_days': {
             const start = new Date(today);
             start.setDate(start.getDate() - 6);
             return { start, end: today };
         }
 
-        case 'last_30_days': {
+        case 'last_14_days': {
             const start = new Date(today);
-            start.setDate(start.getDate() - 29);
+            start.setDate(start.getDate() - 13);
             return { start, end: today };
         }
 
-        case 'last_90_days': {
+        case 'last_28_days': {
             const start = new Date(today);
-            start.setDate(start.getDate() - 89);
+            start.setDate(start.getDate() - 27);
             return { start, end: today };
+        }
+
+        case 'this_week': {
+            // Week starts Monday (ISO standard, same as Facebook)
+            const dayOfWeek = today.getDay();
+            const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+            const start = new Date(today);
+            start.setDate(start.getDate() - diffToMonday);
+            return { start, end: today };
+        }
+
+        case 'last_week': {
+            const dayOfWeek = today.getDay();
+            const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+            const thisMonday = new Date(today);
+            thisMonday.setDate(thisMonday.getDate() - diffToMonday);
+            const lastMonday = new Date(thisMonday);
+            lastMonday.setDate(lastMonday.getDate() - 7);
+            const lastSunday = new Date(thisMonday);
+            lastSunday.setDate(lastSunday.getDate() - 1);
+            return { start: lastMonday, end: lastSunday };
         }
 
         case 'this_month': {
@@ -197,57 +224,27 @@ export function useInsightsData(
             setError(null);
 
             try {
-                // Map frontend presets to Meta API date_preset values
-                const META_DATE_PRESETS: Record<string, string> = {
-                    'today': 'today',
-                    'yesterday': 'yesterday',
-                    'last_7_days': 'last_7d',
-                    'last_30_days': 'last_30d',
-                    'last_90_days': 'last_90d',
-                    'this_month': 'this_month',
-                    'last_month': 'last_month',
-                };
+                // ALWAYS use explicit dates for consistency between insights and timeseries
+                let dateStart: string;
+                let dateEnd: string;
 
-                const isCustom = filters.period === 'custom' && filters.customStartDate && filters.customEndDate;
-                const metaPreset = !isCustom ? META_DATE_PRESETS[filters.period] : undefined;
-
-                // For insights: use Meta API native date_preset (most accurate, respects account timezone)
-                // For timeseries: always need explicit dates (time_range required by API)
-                let insightsParams: { dateStart?: string; dateEnd?: string; datePreset?: string };
-                let timeseriesStart: string;
-                let timeseriesEnd: string;
-
-                if (isCustom) {
-                    // Custom range: use explicit dates for both
-                    insightsParams = { dateStart: filters.customStartDate!, dateEnd: filters.customEndDate! };
-                    timeseriesStart = filters.customStartDate!;
-                    timeseriesEnd = filters.customEndDate!;
-                } else if (metaPreset) {
-                    // Standard preset: use Meta's native date_preset for insights (accurate)
-                    // but still calculate dates for timeseries (needs explicit time_range)
-                    insightsParams = { datePreset: metaPreset };
-                    const { start, end } = getDateRangeFromPreset(filters.period);
-                    timeseriesStart = formatDateForApi(start);
-                    timeseriesEnd = formatDateForApi(end);
+                if (filters.period === 'custom' && filters.customStartDate && filters.customEndDate) {
+                    dateStart = filters.customStartDate;
+                    dateEnd = filters.customEndDate;
                 } else {
-                    // Fallback: calculate dates
                     const { start, end } = getDateRangeFromPreset(filters.period);
-                    const ds = formatDateForApi(start);
-                    const de = formatDateForApi(end);
-                    insightsParams = { dateStart: ds, dateEnd: de };
-                    timeseriesStart = ds;
-                    timeseriesEnd = de;
+                    dateStart = formatDateForApi(start);
+                    dateEnd = formatDateForApi(end);
                 }
 
-                // Prepare comparison dates (always needs explicit dates)
+                // Prepare comparison dates
                 let prevStart: string | undefined;
                 let prevEnd: string | undefined;
 
                 if (filters.comparison !== 'none') {
-                    const { start, end } = getDateRangeFromPreset(filters.period);
                     const { prevStart: ps, prevEnd: pe } = getPreviousPeriodDates(
-                        isCustom ? new Date(filters.customStartDate!) : start,
-                        isCustom ? new Date(filters.customEndDate!) : end,
+                        new Date(dateStart),
+                        new Date(dateEnd),
                         filters.comparison
                     );
                     prevStart = formatDateForApi(ps);
@@ -256,11 +253,11 @@ export function useInsightsData(
 
                 // Fetch all data in parallel
                 const [insights, timeseries, comparison] = await Promise.all([
-                    metaService.getInsights(adAccountId, insightsParams),
+                    metaService.getInsights(adAccountId, { dateStart, dateEnd }),
                     metaService.getInsightsTimeseries(
                         adAccountId,
-                        timeseriesStart,
-                        timeseriesEnd,
+                        dateStart,
+                        dateEnd,
                         filters.grouping === 'hour' ? 'day' : filters.grouping
                     ),
                     prevStart && prevEnd

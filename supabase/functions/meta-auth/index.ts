@@ -86,6 +86,7 @@ async function handleAuthenticate(access_token: string, supabase: any, app_user_
     // 2. Exchange for Long-Lived Token
     let longLivedToken = access_token;
     let tokenExpiresAt: string | null = null;
+    let tokenType: 'long_lived' | 'short_lived' = 'short_lived';
     const appId = Deno.env.get("META_APP_ID");
     const appSecret = Deno.env.get("META_APP_SECRET");
 
@@ -99,10 +100,16 @@ async function handleAuthenticate(access_token: string, supabase: any, app_user_
                 longLivedToken = exData.access_token;
                 const expiresIn = exData.expires_in || 60 * 24 * 60 * 60; // 60 days default
                 tokenExpiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
+                tokenType = 'long_lived';
+                console.log(`[MetaAuth] Token exchanged successfully. Expires: ${tokenExpiresAt}`);
+            } else {
+                console.warn("[MetaAuth] Token exchange returned no access_token:", exData);
             }
         } catch (e) {
-            console.warn("Token exchange warning:", e);
+            console.error("[MetaAuth] Token exchange failed:", e);
         }
+    } else {
+        console.warn("[MetaAuth] META_APP_ID or META_APP_SECRET not configured. Using short-lived token.");
     }
 
     // 3. Update User Metadata
@@ -114,6 +121,7 @@ async function handleAuthenticate(access_token: string, supabase: any, app_user_
             facebook_email: fbData.email,
             token_expires_at: tokenExpiresAt,
             token_updated_at: new Date().toISOString(),
+            token_type: tokenType,
         },
     });
 
@@ -123,6 +131,7 @@ async function handleAuthenticate(access_token: string, supabase: any, app_user_
         JSON.stringify({
             success: true,
             user: { meta_user_id: fbData.id, name: fbData.name, email: fbData.email },
+            token_type: tokenType,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );

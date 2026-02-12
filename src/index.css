@@ -85,3 +85,16 @@
         @apply bg-brand-600 text-white font-medium px-4 py-2 rounded-sm shadow-sm hover:bg-brand-500 active:translate-y-[1px] transition-all;
     }
 }
+
+/* Toast slide-in animation */
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}

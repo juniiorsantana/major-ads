@@ -22,7 +22,7 @@ import {
 } from '../../types';
 import { useInsightsData, transformInsightsToKpiCards } from '../../hooks/useInsightsData';
 import { metaService } from '../../services/metaService';
-import { Loader2, AlertCircle, WifiOff, ChevronDown } from 'lucide-react';
+import { Loader2, AlertCircle, WifiOff, ChevronDown, RefreshCw } from 'lucide-react';
 
 // ==========================================
 // Helpers
@@ -339,9 +339,23 @@ const DashboardHome: React.FC = () => {
                 <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div>
                         <h1 className="text-2xl font-bold text-slate-900">Visão Geral</h1>
-                        <p className="text-slate-500">
-                            Bem-vindo de volta, {user?.email}
-                        </p>
+                        <div className="flex items-center gap-3">
+                            <p className="text-slate-500">
+                                Bem-vindo de volta, {user?.email}
+                            </p>
+                            <button
+                                onClick={() => {
+                                    fetchAdAccount(true);
+                                    if (refetch) refetch();
+                                }}
+                                disabled={loading || loadingAdAccount}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors disabled:opacity-50"
+                                title="Atualizar métricas"
+                            >
+                                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                                Atualizar
+                            </button>
+                        </div>
                     </div>
 
                     {/* Ad Account Selector */}
@@ -395,24 +409,6 @@ const DashboardHome: React.FC = () => {
                     </div>
                 )}
 
-                {/* Mock Mode Warning */}
-                {!metaService.isConfigured() && !adAccountError && (
-                    <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                        <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
-                        <div className="flex-1">
-                            <p className="text-sm font-medium text-amber-800">Modo Demo Ativo</p>
-                            <p className="text-xs text-amber-600">
-                                Você está visualizando dados simulados. Conecte sua conta Meta em Configurações para ver dados reais.
-                            </p>
-                        </div>
-                        <a
-                            href="/settings"
-                            className="px-3 py-1.5 text-sm font-medium text-amber-700 bg-amber-100 rounded-lg hover:bg-amber-200 transition-colors"
-                        >
-                            Conectar Meta
-                        </a>
-                    </div>
-                )}
 
                 {/* No Data Info */}
                 {isUsingEmptyData && !loading && !adAccountError && (

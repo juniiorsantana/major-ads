@@ -7,8 +7,10 @@ export const VALID_ACTIONS = [
     'insights', 'insights_timeseries'
 ] as const;
 
-// Base Schema
-export const BaseParamsSchema = z.object({
+// Unified Params Schema — accepts all possible params for any action.
+// Using a single schema (no union) prevents Zod from stripping date fields.
+export const ParamsSchema = z.object({
+    // Common
     business_id: z.string().optional(),
     ad_account_id: z.string().optional(),
     page_id: z.string().optional(),
@@ -16,21 +18,13 @@ export const BaseParamsSchema = z.object({
     limit: z.number().min(1).max(100).optional().default(25),
     before: z.string().optional(),
     after: z.string().optional(),
-});
-
-// Insights Schema
-export const InsightsParamsSchema = BaseParamsSchema.extend({
-    date_start: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (YYYY-MM-DD)").optional(),
-    date_end: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (YYYY-MM-DD)").optional(),
-    date_preset: z.enum(['today', 'yesterday', 'this_month', 'last_month', 'this_quarter', 'maximum', 'last_3d', 'last_7d', 'last_14d', 'last_28d', 'last_30d', 'last_90d']).optional(),
+    // Insights-specific
+    date_start: z.string().optional(),
+    date_end: z.string().optional(),
+    date_preset: z.string().optional(),
     level: z.enum(['ad', 'adset', 'campaign', 'account']).optional().default('account'),
     breakdown: z.enum(['day', 'week', 'month']).optional(),
-}).refine(data => {
-    if ((data.date_start && !data.date_end) || (!data.date_start && data.date_end)) {
-        return false;
-    }
-    return true;
-}, { message: "Both date_start and date_end must be provided if one is present", path: ["date_start"] });
+}).passthrough();
 
 // Create Campaign Schema
 export const CreateCampaignSchema = z.object({
@@ -56,9 +50,9 @@ export const UpdateCampaignSchema = z.object({
 // Main Request Schema
 export const RequestSchema = z.object({
     action: z.enum(VALID_ACTIONS),
-    params: z.union([InsightsParamsSchema, BaseParamsSchema]).optional(),
+    params: ParamsSchema.optional(),
     body: z.union([CreateCampaignSchema, UpdateCampaignSchema, z.record(z.unknown())]).optional(),
-});
+}).passthrough();
 
 export type MetaApiRequest = z.infer<typeof RequestSchema>;
-export type MetaApiParams = z.infer<typeof InsightsParamsSchema>;
+export type MetaApiParams = z.infer<typeof ParamsSchema>;

@@ -91,11 +91,12 @@ serve(async (req: Request) => {
                 data = await metaService.getCampaignsWithInsights(params.ad_account_id);
                 break;
             case 'insights':
-            case 'insights_timeseries': // Unified in service, can branch if needed
                 if (!params?.ad_account_id) throw new Error("ad_account_id required");
-                // TODO: Handle splitting insights logic if 'insights' vs 'insights_timeseries' differs significantly
-                // For now mapping both to generalized getInsights
                 data = await metaService.getInsights(params.ad_account_id, params || {});
+                break;
+            case 'insights_timeseries':
+                if (!params?.ad_account_id) throw new Error("ad_account_id required");
+                data = await metaService.getInsightsTimeseries(params.ad_account_id, params || {});
                 break;
             case 'create_campaign':
                 if (!params?.ad_account_id) throw new Error("ad_account_id required");
@@ -105,9 +106,18 @@ serve(async (req: Request) => {
             // Allow specialized handling for logic not fully moved to service yet
             // Or extend service as needed
             case 'pages':
+                if (!params?.business_id) throw new Error("business_id required");
+                data = await metaService.getPages(params.business_id);
+                break;
             case 'instagram_accounts':
+                if (!params?.page_id) throw new Error("page_id required");
+                data = await metaService.getInstagramAccounts(params.page_id);
+                break;
             case 'update_campaign':
-                throw new Error(`Action '${action}' not yet fully implemented in new architecture`);
+                if (!params?.campaign_id) throw new Error("campaign_id required");
+                if (!payload) throw new Error("Request body required for update_campaign");
+                data = await metaService.updateCampaign(params.campaign_id, payload);
+                break;
 
             default:
                 throw new Error("Invalid action");
@@ -123,12 +133,22 @@ serve(async (req: Request) => {
         });
 
     } catch (error: any) {
-        const isAuth = error.message === "Unauthorized" || error.message === "Facebook not connected";
-        const status = isAuth ? 401 : 400;
+        const message = error.message || "Internal server error";
+        let status = 500;
 
-        console.error("API Error:", error.message);
+        if (message === "Unauthorized" || message === "Facebook not connected") {
+            status = 401;
+        } else if (message.startsWith("Validation Error")) {
+            status = 422;
+        } else if (message.includes("Rate limit")) {
+            status = 429;
+        } else if (message.includes("Meta API Error") || message.includes("Facebook Error")) {
+            status = 502;
+        }
 
-        return new Response(JSON.stringify({ error: error.message }), {
+        console.error(`[MetaAPI] Error (${status}): ${message}`);
+
+        return new Response(JSON.stringify({ error: message, code: status }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
             status
         });

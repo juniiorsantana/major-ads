@@ -6,6 +6,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './components/ProtectedRoute';
 import { RequireMetaConnection } from './components/RequireMetaConnection';
 import DashboardLayout from './layouts/DashboardLayout';
+import ToastContainer from './components/ui/Toast';
 import { Loader2 } from 'lucide-react';
 
 // Lazy loaded pages for code splitting
@@ -91,6 +92,7 @@ const App: React.FC = () => {
           </BrowserRouter>
         </AuthProvider>
       </QueryProvider>
+      <ToastContainer />
     </ErrorBoundary>
   );
 };
