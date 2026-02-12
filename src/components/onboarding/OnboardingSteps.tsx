@@ -171,7 +171,7 @@ export const OnboardingSteps: React.FC<OnboardingStepsProps> = ({ onComplete }) 
                         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
                             <div>
                                 <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 mb-2">
-                                    Bem-vindo ao Major<span className="text-blue-600">Hub</span>
+                                    Bem-vindo ao Major<span className="text-brand-600">Ads.PRO</span>
                                 </h1>
                                 <p className="text-lg text-slate-600 leading-relaxed font-light">
                                     Vamos começar conhecendo você
@@ -188,7 +188,7 @@ export const OnboardingSteps: React.FC<OnboardingStepsProps> = ({ onComplete }) 
                                         value={formData.full_name}
                                         onChange={(e) => updateField('full_name', e.target.value)}
                                         placeholder="João Silva"
-                                        className="w-full px-4 py-3 border border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 outline-none transition-all"
+                                        className="w-full px-4 py-3 border border-slate-300 focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 outline-none transition-all"
                                     />
                                 </div>
 
@@ -201,7 +201,7 @@ export const OnboardingSteps: React.FC<OnboardingStepsProps> = ({ onComplete }) 
                                         value={formData.company_name}
                                         onChange={(e) => updateField('company_name', e.target.value)}
                                         placeholder="Sua Empresa Ltda"
-                                        className="w-full px-4 py-3 border border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 outline-none transition-all"
+                                        className="w-full px-4 py-3 border border-slate-300 focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 outline-none transition-all"
                                     />
                                 </div>
                             </div>
@@ -214,7 +214,7 @@ export const OnboardingSteps: React.FC<OnboardingStepsProps> = ({ onComplete }) 
 
                             <button
                                 onClick={handleNext}
-                                className="group w-full flex items-center justify-center gap-3 px-6 py-4 bg-blue-600 text-white font-bold text-lg hover:bg-blue-700 transition-all"
+                                className="group w-full flex items-center justify-center gap-3 px-6 py-4 bg-brand-600 text-white font-bold text-lg hover:bg-brand-700 transition-all"
                             >
                                 <span>Continuar</span>
                                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -240,7 +240,7 @@ export const OnboardingSteps: React.FC<OnboardingStepsProps> = ({ onComplete }) 
                                         value={formData.role}
                                         onChange={(e) => updateField('role', e.target.value)}
                                         placeholder="Ex: Gerente de Marketing, CEO, Analista"
-                                        className="w-full px-4 py-3 border border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 outline-none transition-all"
+                                        className="w-full px-4 py-3 border border-slate-300 focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 outline-none transition-all"
                                     />
                                 </div>
 
@@ -251,7 +251,7 @@ export const OnboardingSteps: React.FC<OnboardingStepsProps> = ({ onComplete }) 
                                     <select
                                         value={formData.business_type}
                                         onChange={(e) => updateField('business_type', e.target.value)}
-                                        className="w-full px-4 py-3 border border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 outline-none transition-all bg-white"
+                                        className="w-full px-4 py-3 border border-slate-300 focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 outline-none transition-all bg-white"
                                     >
                                         <option value="">Selecione...</option>
                                         {BUSINESS_TYPES.map(type => (
@@ -276,7 +276,7 @@ export const OnboardingSteps: React.FC<OnboardingStepsProps> = ({ onComplete }) 
                                 </button>
                                 <button
                                     onClick={handleNext}
-                                    className="group flex-1 flex items-center justify-center gap-3 px-6 py-4 bg-blue-600 text-white font-bold text-lg hover:bg-blue-700 transition-all"
+                                    className="group flex-1 flex items-center justify-center gap-3 px-6 py-4 bg-brand-600 text-white font-bold text-lg hover:bg-brand-700 transition-all"
                                 >
                                     <span>Continuar</span>
                                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -301,15 +301,15 @@ export const OnboardingSteps: React.FC<OnboardingStepsProps> = ({ onComplete }) 
                                             key={goal.value}
                                             onClick={() => toggleGoal(goal.value)}
                                             className={`flex items-center gap-4 p-4 border-2 transition-all text-left ${isSelected
-                                                    ? 'border-blue-600 bg-blue-50'
-                                                    : 'border-slate-200 hover:border-slate-400'
+                                                ? 'border-brand-600 bg-brand-50'
+                                                : 'border-slate-200 hover:border-slate-400'
                                                 }`}
                                         >
-                                            <div className={`w-5 h-5 border-2 flex items-center justify-center transition-all ${isSelected ? 'border-blue-600 bg-blue-600' : 'border-slate-300'
+                                            <div className={`w-5 h-5 border-2 flex items-center justify-center transition-all ${isSelected ? 'border-brand-600 bg-brand-600' : 'border-slate-300'
                                                 }`}>
                                                 {isSelected && <CheckCircle2 size={16} className="text-white" />}
                                             </div>
-                                            <span className={`font-bold ${isSelected ? 'text-blue-900' : 'text-slate-700'}`}>
+                                            <span className={`font-bold ${isSelected ? 'text-brand-900' : 'text-slate-700'}`}>
                                                 {goal.label}
                                             </span>
                                         </button>
@@ -333,7 +333,7 @@ export const OnboardingSteps: React.FC<OnboardingStepsProps> = ({ onComplete }) 
                                 <button
                                     onClick={handleNext}
                                     disabled={loading}
-                                    className="group flex-1 flex items-center justify-center gap-3 px-6 py-4 bg-blue-600 text-white font-bold text-lg hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="group flex-1 flex items-center justify-center gap-3 px-6 py-4 bg-brand-600 text-white font-bold text-lg hover:bg-brand-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {loading ? (
                                         <>
@@ -374,14 +374,14 @@ export const OnboardingSteps: React.FC<OnboardingStepsProps> = ({ onComplete }) 
 
             {/* Right Panel: Visual */}
             <div className="hidden md:flex w-[40%] bg-slate-900 relative overflow-hidden items-center justify-center p-12">
-                <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-500 via-slate-900 to-black"></div>
+                <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-brand-500 via-slate-900 to-black"></div>
                 <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#475569 1px, transparent 1px)', backgroundSize: '32px 32px' }}></div>
 
                 {/* Abstract Visual */}
                 <div className="relative z-10 w-full max-w-[280px] aspect-square">
                     {/* Icons representing different steps */}
                     <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transition-all duration-700 ${step === 1 ? 'scale-110' : 'scale-100'}`}>
-                        <div className="w-24 h-24 bg-blue-600 flex items-center justify-center shadow-[0_0_40px_rgba(37,99,235,0.5)]">
+                        <div className="w-24 h-24 bg-brand-600 flex items-center justify-center shadow-[0_0_40px_rgba(56,53,230,0.5)]">
                             {step === 1 && <User size={40} className="text-white" />}
                             {step === 2 && <Briefcase size={40} className="text-white" />}
                             {step === 3 && <Target size={40} className="text-white" />}

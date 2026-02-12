@@ -3,18 +3,18 @@
 @import "tailwindcss";
 
 @theme {
-    /* "Precision" Palette - High Contrast, No Default Blue */
-    --color-brand-50: #fff7ed;
-    --color-brand-100: #ffedd5;
-    --color-brand-200: #fed7aa;
-    --color-brand-300: #fdba74;
-    --color-brand-400: #fb923c;
-    --color-brand-500: #f97316;
-    --color-brand-600: #ea580c;
-    --color-brand-700: #c2410c;
-    --color-brand-800: #9a3412;
-    --color-brand-900: #7c2d12;
-    --color-brand-950: #431407;
+    /* "Precision" Palette - High Contrast, Blue Anchor #3835E6 */
+    --color-brand-50: #EEEDFD;
+    --color-brand-100: #DCDAFB;
+    --color-brand-200: #B9B6F8;
+    --color-brand-300: #9692F4;
+    --color-brand-400: #655EF0;
+    --color-brand-500: #4B46ED;
+    --color-brand-600: #3835E6;
+    --color-brand-700: #2D2AB8;
+    --color-brand-800: #22208A;
+    --color-brand-900: #17155C;
+    --color-brand-950: #0D0C33;
 
     /* Neutral palette (Zinc for colder, tech feel) */
     --color-neutral-50: #fafafa;

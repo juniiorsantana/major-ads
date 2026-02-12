@@ -46,7 +46,7 @@ const Register: React.FC = () => {
         <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
             <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
                 <div className="text-center mb-8">
-                    <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-200">
+                    <div className="w-12 h-12 bg-brand-600 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-200">
                         <span className="text-white font-black text-xl">M</span>
                     </div>
                     <h2 className="text-2xl font-bold text-slate-800">Criar Conta</h2>
@@ -89,7 +89,7 @@ const Register: React.FC = () => {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-blue-600 text-white py-3.5 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
+                        className="w-full bg-brand-600 text-white py-3.5 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
                     >
                         {loading ? (
                             <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
@@ -101,7 +101,7 @@ const Register: React.FC = () => {
 
                 <p className="mt-8 text-center text-sm text-slate-500">
                     Já tem uma conta?{' '}
-                    <Link to="/login" className="font-bold text-blue-600 hover:text-blue-700">
+                    <Link to="/login" className="font-bold text-brand-600 hover:text-blue-700">
                         Fazer login
                     </Link>
                 </p>

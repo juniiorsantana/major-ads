@@ -13,7 +13,7 @@ const Onboarding: React.FC = () => {
                 <OnboardingSteps onComplete={handleOnboardingComplete} />
 
                 <div className="mt-8 text-center text-slate-400 text-sm">
-                    <p>© 2025 MajorHub. Todos os direitos reservados.</p>
+                    <p>© 2025 MajorAds.PRO. Todos os direitos reservados.</p>
                     <div className="flex justify-center gap-4 mt-2">
                         <span className="cursor-pointer hover:text-slate-600">Termos</span>
                         <span className="cursor-pointer hover:text-slate-600">Privacidade</span>

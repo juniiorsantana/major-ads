@@ -44,7 +44,7 @@ const DashboardLayout: React.FC = () => {
                         <div className="w-8 h-8 bg-brand-600 rounded-sm flex items-center justify-center shrink-0 shadow-lg shadow-brand-900/20">
                             <BarChart3 className="text-white w-5 h-5" />
                         </div>
-                        <span className="font-display font-bold text-white tracking-tight text-lg">AdsManager<span className="text-brand-500">.Pro</span></span>
+                        <span className="font-display font-bold text-white tracking-tight text-lg">MajorAds<span className="text-brand-500">.PRO</span></span>
                     </div>
                     {/* Collapsed Brand Icon fallback */}
                     {collapsed && (

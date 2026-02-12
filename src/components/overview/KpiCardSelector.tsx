@@ -96,7 +96,7 @@ const KpiCardSelector: React.FC<KpiCardSelectorProps> = ({
                                         className={`
                                             flex items-center gap-3 p-3 rounded-xl border cursor-grab
                                             transition-all duration-150
-                                            bg-blue-50 border-blue-200 hover:border-blue-300
+                                            bg-brand-50 border-brand-200 hover:border-brand-300
                                             ${isDragging ? 'opacity-50 scale-95' : ''}
                                         `}
                                     >
@@ -167,7 +167,7 @@ const KpiCardSelector: React.FC<KpiCardSelectorProps> = ({
                                         </span>
                                         <button
                                             onClick={() => moveToTop(key)}
-                                            className="p-1.5 rounded-lg bg-slate-100 text-slate-400 hover:bg-blue-100 hover:text-blue-500 transition-colors"
+                                            className="p-1.5 rounded-lg bg-slate-100 text-slate-400 hover:bg-brand-100 hover:text-brand-500 transition-colors"
                                             title="Mover para principais"
                                         >
                                             <ArrowUp className="w-4 h-4" />

@@ -1,143 +1,126 @@
-# SPEC.md - Meta Ads Manager Pro
+# Especificação do Projeto - Meta Ads SaaS Pro
 
-## 1. System Architecture
+## 1. Visão Geral
 
-The application follows a modern Serverless architecture, leveraging Supabase for backend services and React for the frontend.
+**Nome do Projeto:** Meta Ads SaaS Pro
+**Descrição:** Aplicação SaaS para análise e gerenciamento de campanhas do Meta Ads, focada em fornecer insights acionáveis e uma interface simplificada para gestores de tráfego.
+**Repositório:** `meta-ads-saas-pro` (interno: `major-ads`)
 
-```mermaid
-graph TD
-    User[User] -->|HTTPS| Frontend[React Frontend]
-    Frontend -->|Auth/Data| Supabase[Supabase Platform]
-    
-    subgraph "Supabase Backend"
-        Auth[GoTrue Auth]
-        DB[(PostgreSQL)]
-        Edge[Edge Functions]
-    end
-    
-    Frontend -->|Direct DB Access| DB
-    Frontend -->|API Proxy| Edge
-    
-    Edge -->|Graph API| Meta[Meta/Facebook API]
-    Edge -->|Store Tokens| Auth
+## 2. Tecnologias e Arquitetura
+
+### 2.1 Stack Tecnológica
+
+**Frontend:**
+*   **Framework:** React 19 + Vite
+*   **Linguagem:** TypeScript
+*   **Estilização:** Tailwind CSS v4
+*   **Gerenciamento de Estado:** Zustand
+*   **Data Fetching:** TanStack Query (React Query) v5
+*   **Visualização de Dados:** Recharts
+*   **Roteamento:** React Router v7
+*   **Ícones:** Lucide React
+
+**Backend (Serverless):**
+*   **Plataforma:** Supabase
+*   **Banco de Dados:** PostgreSQL (Supabase DB)
+*   **Auth:** Supabase Auth (Email/Password + Integrações)
+*   **Edge Functions:** Deno (TypeScript)
+
+**IA & Integrações:**
+*   **Meta Graph API:** v21.0
+*   **IA Generativa:** Google Gemini (`@google/genai`)
+
+### 2.2 Estrutura de Pastas
+
+```
+/src
+  /components       # Componentes de UI reutilizáveis
+  /context          # Contextos React (ex: AuthContext)
+  /hooks            # Custom Hooks
+  /layouts          # Layouts de página (DashboardLayout)
+  /pages            # Páginas da aplicação (Roteamento)
+  /services         # Serviços de API (Meta, Supabase, Gemini)
+  /stores           # Stores Zustand (Estado global)
+  /types            # Definições de Tipos TypeScript
+/supabase
+  /functions        # Edge Functions
+    /meta-api       # Proxy para Meta API
+    /meta-auth      # Autenticação e Troca de Tokens Meta
+  /migrations       # Scripts SQL de banco de dados
 ```
 
----
+## 3. Funcionalidades Principais
 
-## 2. Database Design
+### 3.1 Autenticação e Onboarding
+*   **Login/Registro:** Via Supabase Auth.
+*   **Onboarding:** Fluxo guiado para coletar informações do perfil do usuário (Nome, Empresa, Função, Objetivos).
+*   **Conexão Meta:** OAuth 2.0 para conectar contas do Facebook/Instagram.
+    *   Troca de token de curto prazo por token de longo prazo (60 dias).
+    *   Armazenamento seguro de tokens no `user_metadata`.
 
-### 2.1 Core Tables
+### 3.2 Dashboard Principal
+*   **Visão Geral:** Cards de KPI principais (Spend, Impressions, Clicks, CTR, CPM, ROAS).
+*   **Gráficos:** Visualização temporal de métricas.
+*   **Filtros:**
+    *   Seletor de Conta de Anúncios.
+    *   Períodos de data (hoje, ontem, ultimos 7/30 dias, customizado).
+    *   Comparação com períodos anteriores.
 
-#### `public.user_profiles`
-Stores user onboarding and profile data. Linked 1:1 with `auth.users`.
+### 3.3 Gestão de Campanhas
+*   **Listagem:** Visualização de campanhas com status e métricas principais.
+*   **Detalhes:** Insights performance semanais/diários.
+*   **Criação/Edição:** (Funcionalidade prevista na API `create_campaign`, `update_campaign`).
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | uuid | Primary Key, FK to `auth.users.id` |
-| `full_name` | text | User's full name |
-| `company_name` | text | Company/Organization name |
-| `role` | text | User's role (e.g., Media Buyer) |
-| `business_type` | text | Type of business (e.g., E-commerce) |
-| `goals` | text[] | Array of user goals |
-| `created_at` | timestamp | Creation timestamp |
-| `updated_at` | timestamp | Last update timestamp |
+### 3.4 Ferramentas de IA
+*   Integração com Gemini para análise de dados e sugestões (placeholder implementado).
 
-### 2.2 Auth Integration
-- **Supabase Auth**: Manages users and sessions.
-- **User Metadata**: Stores sensitive third-party tokens (Facebook Access Token).
-  - `facebook_access_token`: Encrypted in Supabase Auth user metadata.
-  - `token_expires_at`: Expiration timestamp for the token.
+## 4. Banco de Dados e Modelagem
 
----
+### 4.1 Tabelas de Dados (`public`)
 
-## 3. API Specifications (Edge Functions)
+**`user_profiles`**
+*   `id`: UUID (FK -> auth.users.id)
+*   `full_name`: Text
+*   `company_name`: Text
+*   `role`: Text
+*   `business_type`: Text
+*   `goals`: Text Array
+*   `created_at`, `updated_at`: Timestamp
 
-### 3.1 `meta-auth`
-Handles the OAuth flow and token exchange with Facebook.
+### 4.2 Segurança (RLS)
+*   **Políticas:** Usuários podem apenas visualizar, inserir e atualizar seus próprios dados (`auth.uid() = id`).
 
-- **Endpoint**: `/functions/v1/meta-auth`
-- **Method**: `POST`
-- **Purpose**: Exchange short-lived token for long-lived token.
-- **Payload**: `{ access_token: string }`
-- **Process**:
-  1. Verifies the received user access token with Facebook.
-  2. Requests a long-lived token (60 days validity).
-  3. Updates the Supabase User Metadata with the new token.
+## 5. API e Edge Functions
 
-### 3.2 `meta-api`
-Acts as a secure proxy to the Meta Graph API.
+### 5.1 `meta-auth`
+Gerencia o fluxo de autenticação com o Facebook.
+*   **Ações:**
+    *   `authenticate`: Valida token do Facebook e troca por token de longo prazo.
+    *   `refresh_token`: Renova tokens expirados.
 
-- **Endpoint**: `/functions/v1/meta-api`
-- **Method**: `POST`
-- **Security**: Custom JWT verification (Auto-verify disabled to prevent 401 issues, manual logic implemented).
-- **Supported Actions**:
-  - `businesses`: Fetch user's Business Managers.
-  - `adaccounts`: Fetch Ad Accounts for a BM (owned + client).
-  - `campaigns`: List campaigns for an Ad Account.
-  - `campaigns_with_insights`: List campaigns enriched with insights (impressions, spend, etc.).
-  - `insights`: Fetch aggregated account performance.
-  - `insights_timeseries`: Fetch daily/weekly performance data.
+### 5.2 `meta-api`
+Proxy seguro para a Meta Graph API.
+*   **Middleware:**
+    *   Validação de JWT Supabase.
+    *   Rate Limiting por usuário.
+    *   Logs de requisição.
+*   **Ações Suportadas:**
+    *   `businesses`: Lista Business Managers.
+    *   `adaccounts`: Lista contas de anúncios (próprias e de clientes).
+    *   `campaigns`: Lista campanhas de uma conta.
+    *   `campaigns_with_insights`: Campanhas enriquecidas com métricas.
+    *   `insights`, `insights_timeseries`: Métricas agregadas e temporais.
 
----
+## 6. Variáveis de Ambiente
 
-## 4. Frontend Architecture
+### Frontend (`.env.local`)
+*   `VITE_SUPABASE_URL`: URL do projeto Supabase.
+*   `VITE_SUPABASE_ANON_KEY`: Chave pública anônima.
+*   `GEMINI_API_KEY`: Chave de API Google Gemini.
 
-### 4.1 Technology Stack
-- **Framework**: React 19 + Vite
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS v4 + Lucide React Icons
-- **State/Data**: React Context (Auth), Local State
-- **Charting**: Recharts
-
-### 4.2 Key Services
-- **`metaService.ts`**: Central service for Meta API interactions.
-  - Handles Supabase session refreshing.
-  - Manages error handling (401 invalid JWT, Permission errors).
-  - Caches selected Business Manager/Ad Account IDs in `localStorage`.
-  
-- **`supabaseClient.ts`**: Configured Supabase client instance.
-
-### 4.3 Directory Structure
-```
-src/
-├── components/       # Reusable UI components
-│   ├── overview/     # Dashboard specific widgets (KPIs, Charts)
-│   └── ui/           # Generic UI elements (Buttons, Inputs)
-├── context/          # Global state (AuthContext)
-├── hooks/            # Custom hooks (data fetching helpers)
-├── layouts/          # Page layouts (DashboardLayout)
-├── pages/            # View components (Campaigns, Settings)
-└── services/         # API integration logic
-```
-
----
-
-## 5. Security Model
-
-### 5.1 Authentication
-- Uses **Supabase Auth** with email/password and social login capabilities.
-- Sessions are persisted in browser storage.
-- **Critical Fix**: Frontend explicitly checks and refreshes sessions before API calls to prevent premature expiration.
-
-### 5.2 Authorization (RLS)
-- Row Level Security (RLS) is enabled on `public.user_profiles`.
-- **Policy**: `Users can select/insert/update own profile using (auth.uid() = id)`.
-
-### 5.3 API Security
-- **Edge Functions**:
-  - Do not expose Facebook Access Tokens to the client-side logic where possible (although currently stored in metadata for ease of access).
-  - Validate the `Authorization` header (Supabase JWT) to ensure the caller is an authenticated user.
-  - **Rate Limiting**: Implemented in `meta-api` (e.g., 60 requests/min per user).
-
----
-
-## 6. Implementation Plan - Next Steps
-
-### Phase 2: Enhanced Campaign Management
-1. **Details View**: Create route `/campaigns/:id` to show ad sets and ads.
-2. **Write Operations**: Implement `pause`/`activate` buttons using `meta-api`.
-3. **Creation Flow**: Multi-step wizard for creating new campaigns.
-
-### Phase 3: Advanced Intelligence
-1. **AI Analysis**: Integrate Gemini API (via Edge Function) to analyze campaign performance.
-2. **Smart Alerts**: Backend job to check daily performance and create notifications.
+### Backend (Supabase Secrets)
+*   `SUPABASE_URL`: URL interna.
+*   `SUPABASE_ANON_KEY`: Chave anônima.
+*   `PRIVATE_SERVICE_ROLE_KEY`: Chave de serviço (ADMIN) para atualizar metadados de usuário.
+*   `META_APP_ID`: ID do App Meta.
+*   `META_APP_SECRET`: Segredo do App Meta.
