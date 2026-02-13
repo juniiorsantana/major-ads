@@ -1,84 +1,50 @@
-# Project Rules & Guidelines - Meta Ads SaaS Pro
+# 🚨 Solução de Erros: Conexão Meta API (401 Unauthorized / Invalid JWT)
 
-> **Version:** 1.0.0
-> **Last Updated:** 2026-02-11
+Este arquivo documenta a solução definitiva para o erro recorrente de "Invalid JWT" ou falha de autenticação ao conectar com o Meta Ads.
 
-This document allows the team to maintain code quality, consistency, and scalability throughout the project lifecycle.
+## 🔴 O Problema
+- **Erro:** "Invalid JWT" ou status `401 Unauthorized` constante.
+- **Sintoma:** O usuário faz login no Facebook com sucesso, mas ao tentar listar contas ou campanhas, ocorre erro imediato.
+- **Logs:** Os logs da Edge Function mostram `401` antes mesmo de qualquer log da aplicação aparecer.
 
-## 1. General Principles
-- **DRY (Don't Repeat Yourself):** Extract common logic into hooks or utility functions.
-- **KISS (Keep It Simple, Stupid):** Avoid over-engineering. Write code that is easy to understand and maintain.
-- **Single Responsibility:** Each component, function, or module should have one clear purpose.
-- **Mobile First:** Design and implement for mobile devices first, then scale up to desktop.
+## 🔎 Causa Raiz
+O Supabase Edge Functions possui uma flag chamada `verify_jwt`. Quando habilitada (`true`), o **Gateway do Supabase tenta validar o token JWT antes de executar sua função**.
 
-## 2. Technology Stack Standards
-- **Runtime:** Node.js (Latest LTS)
-- **Language:** TypeScript (Strict mode enabled)
-- **Frontend:** React 19 + Vite
-- **Styling:** Tailwind CSS v4
-- **State Management:** 
-  - **Server Stats:** TanStack Query v5 (React Query)
-  - **Client Global State:** Zustand
-- **Routing:** React Router v7
-- **Backend:** Supabase (PostgreSQL + Edge Functions w/ Deno)
+Devido a mudanças recentes na infraestrutura do Supabase (migração para chaves de assinatura assimétricas), essa validação no gateway falha frequentemente para tokens de sessão, bloqueando a requisição antes que seu código possa executá-la.
 
-## 3. Directory Structure & Naming
-- **File Names:**
-  - Components: `PascalCase.tsx` (e.g., `CampaignCard.tsx`)
-  - Hooks: `camelCase.ts` (prefix with `use`, e.g., `useCampaigns.ts`)
-  - Utilities: `camelCase.ts` (e.g., `formatCurrency.ts`)
-  - Stores: `camelCase.ts` (e.g., `authStore.ts`)
-- **Folders:**
-  - Keep related files close (colocation).
-  - Use lowercase-kebab-case for folder names generally, but match component names if it contains a primary component (e.g., `components/campaigns/CampaignList.tsx`).
+## ✅ A Solução (Definitiva)
+**Desabilitar a verificação de JWT no Gateway (`verify_jwt: false`).**
 
-## 4. Coding Standards
+Nossas funções (`meta-api` e `meta-auth`) já realizam a autenticação internamente de forma segura via código:
 
-### TypeScript
-- **No `any`:** Explicitly define types. Use `unknown` if necessary and narrow types.
-- **Interfaces vs Types:** Use `interface` for object definitions that might be extended, `type` for unions/intersections.
-- **Props:** Define component props using an interface named `<ComponentName>Props`.
+```typescript
+// O código já faz isso internamente:
+const supabase = createSupabaseClient(req);
+const { data: { user }, error } = await supabase.auth.getUser();
+if (error) throw new Error("Unauthorized");
+```
 
-### React Components
-- **Functional Components:** Use function declarations.
-- **Hooks Rules:** Only call hooks at the top level.
-- **Fragment:** Use `<>...</>` for fragments unless keys are needed.
-- **Memoization:** Use `useMemo` and `useCallback` judiciously to prevent unnecessary re-renders, especially for expensive calculations or callback props passed to children.
+Portanto, a validação do Gateway é redundante e causadora do problema.
 
-### Architecture Features
-- **Data Fetching:** Encapsulate API calls in **Services** (`/src/services`), then consume them via **React Query Hooks** (`/src/hooks`). Do not call services directly from components.
-- **Supabase Client:** Access via the singleton instance.
+## 🚀 Como Fazer o Deploy Corretamente
 
-### Styling (Tailwind CSS)
-- **Utility First:** Use utility classes directly in `className`.
-- **Ordering:** Follow a logical order (Layout -> Box Model -> Typography -> Visuals -> Misc). *Tip: Use the prettier-plugin-tailwindcss.*
-- **No Inline Styles:** Avoid `style={{ ... }}` unless dynamic values are strictly required.
-- **Colors:** Use the defined `primary` (Blue #5441F0) and semantic colors from the theme configuration.
+Sempre que fizer deploy da função `meta-api`, você **DEVE** desabilitar a verificação de JWT.
 
-## 5. State Management Rules
-- **Server State:** MUST use **TanStack Query**. Handle `isLoading`, `isError`, and `data` states gracefully.
-- **Local State:** Use `useState` or `useReducer` for component-level state.
-- **Global Client State:** Use **Zustand** only for truly global UI state (e.g., Sidebar open/close, User Session). Avoid putting server data in Zustand stores (that's what React Query is for).
+### Opção 1: Via CLI (Recomendado)
+Execute o deploy com a flag `--no-verify-jwt`:
+```bash
+supabase functions deploy meta-api --no-verify-jwt
+```
 
-## 6. Backend & Supabase
-- **Edge Functions:**
-  - Written in TypeScript (Deno).
-  - Located in `supabase/functions`.
-  - MUST Validate inputs (Zod recommended).
-  - MUST Return standardized JSON responses.
-  - MUST Handle CORS `OPTIONS` requests.
-- **Database:**
-  - Use Snake Case (`snake_case`) for table names and columns.
-  - **RLS (Row Level Security):** ENABLED on all tables. Define policies explicitely.
+### Opção 2: Via Arquivo de Configuração (`supabase/config.toml`)
+Garanta que o arquivo `config.toml` tenha a seguinte configuração:
+```toml
+[functions.meta-api]
+verify_jwt = false
+```
 
-## 7. Git & Commit Workflow
-- **Commits:** Conventional Commits style.
-  - `feat: add campaign creation flow`
-  - `fix: resolve auth token refresh issue`
-  - `docs: update SPEC.md`
-  - `refactor: simplify dashboard layout`
-- **Branches:** `feature/feature-name`, `fix/bug-name`, `hotfix/urgent-fix`.
+### Opção 3: Via Painel/MCP
+Se estiver usando uma ferramenta de deploy automática (como o MCP), certifique-se de definir a opção `verify_jwt` como `false` para esta função.
 
-## 8. Error Handling
-- **Frontend:** Use Error Boundaries for UI crashes. Display user-friendly toasts (Sonner/Toast) for API errors.
-- **Backend:** Log errors to Supabase/Console but return safe error messages to client. Do not leak stack traces to production client.
+---
+**Nota:** A função `meta-auth` também deve ter `verify_jwt: false` pelo mesmo motivo.
