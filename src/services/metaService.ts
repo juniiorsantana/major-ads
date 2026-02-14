@@ -60,7 +60,7 @@ function clearStoredMetaUser(): void {
   localStorage.removeItem(META_USER_STORAGE_KEY);
 }
 
-async function callMetaApi<T>(action: string, params?: Record<string, string | undefined>): Promise<T> {
+async function callMetaApi<T>(action: string, params?: Record<string, string | undefined>, body?: Record<string, unknown>): Promise<T> {
   const storedUser = getStoredMetaUser();
   if (!storedUser?.appUserId) {
     throw new Error('Not authenticated - no Meta user found');
@@ -98,7 +98,7 @@ async function callMetaApi<T>(action: string, params?: Record<string, string | u
   }
 
   const { data, error } = await supabase.functions.invoke('meta-api', {
-    body: { action, params: cleanParams, app_user_id: storedUser.appUserId },
+    body: { action, params: cleanParams, body: body || undefined, app_user_id: storedUser.appUserId },
     headers: {
       Authorization: `Bearer ${token}`
     }
@@ -363,17 +363,39 @@ class MetaService {
 
   /**
    * Get Campaigns for an Ad Account
+   * [FIX] Aceita parâmetros opcionais de data para filtro de período
    */
-  async getCampaigns(adAccountId: string): Promise<Campaign[]> {
+  async getCampaigns(
+    adAccountId: string,
+    dateParams?: { datePreset?: string; dateStart?: string; dateEnd?: string }
+  ): Promise<Campaign[]> {
 
     try {
-      console.log('[MetaService] Fetching campaigns with insights for:', adAccountId);
+      console.log('[MetaService] Fetching campaigns with insights for:', adAccountId, dateParams);
+
+      // [FIX] Construir params incluindo filtro de data
+      const apiParams: Record<string, string | undefined> = {
+        ad_account_id: adAccountId,
+      };
+
+      if (dateParams?.datePreset) {
+        apiParams.date_preset = dateParams.datePreset;
+      } else if (dateParams?.dateStart && dateParams?.dateEnd) {
+        apiParams.date_start = dateParams.dateStart;
+        apiParams.date_end = dateParams.dateEnd;
+      }
 
       const response = await callMetaApi<MetaApiResponse<{
         id: string;
         name: string;
         status: string;
         objective: string;
+        optimization_goal?: string;
+        promoted_object?: {
+          page_id?: string;
+          instagram_account_id?: string;
+          application_id?: string;
+        };
         spend?: number;
         impressions?: number;
         clicks?: number;
@@ -382,9 +404,13 @@ class MetaService {
         ctr?: number;
         reach?: number;
         frequency?: number;
+        roas?: number;
+        conversions?: number;
+        messaging_conversations?: number;
+        actions?: Array<{ action_type: string; value: string }>;
       }>>(
         'campaigns_with_insights',
-        { ad_account_id: adAccountId }
+        apiParams
       );
 
       console.log('[MetaService] Campaigns response:', response.data?.length || 0, 'campaigns');
@@ -402,6 +428,11 @@ class MetaService {
         ctr: campaign.ctr,
         reach: campaign.reach,
         frequency: campaign.frequency,
+        // [FIX] Novos campos para detecção de campanhas de mensagem
+        optimization_goal: campaign.optimization_goal,
+        roas: campaign.roas ?? 0,
+        conversions: campaign.conversions ?? 0,
+        messaging_conversations: campaign.messaging_conversations ?? 0,
       }));
     } catch (error) {
       console.error('[MetaService] Failed to fetch campaigns:', error);
@@ -420,7 +451,7 @@ class MetaService {
   ): Promise<{ id: string }> {
     return callMetaApi<{ id: string }>('create_campaign', {
       ad_account_id: adAccountId,
-    });
+    }, { name, objective, status, special_ad_categories: [] });
   }
 
   /**
@@ -428,12 +459,48 @@ class MetaService {
    */
   async updateCampaignStatus(campaignId: string, status: 'ACTIVE' | 'PAUSED'): Promise<boolean> {
     try {
-      await callMetaApi('update_campaign', { campaign_id: campaignId });
+      await callMetaApi('update_campaign', { campaign_id: campaignId }, { status });
       return true;
     } catch (error) {
       console.error('[MetaService] Failed to update campaign:', error);
       return false;
     }
+  }
+
+  /**
+   * Update campaign budget
+   * @param amount Budget in cents (Meta API requirement). Min 100 ($1.00)
+   */
+  async updateCampaignBudget(
+    campaignId: string,
+    budgetType: 'daily_budget' | 'lifetime_budget',
+    amountCents: number
+  ): Promise<boolean> {
+    if (amountCents < 100) {
+      throw new Error('Budget mínimo é $1.00 (100 centavos)');
+    }
+    try {
+      await callMetaApi('update_campaign', { campaign_id: campaignId }, {
+        [budgetType]: amountCents,
+      });
+      return true;
+    } catch (error) {
+      console.error('[MetaService] Failed to update budget:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Duplicate a campaign (clone with " (Cópia)" suffix, PAUSED status)
+   */
+  async duplicateCampaign(
+    campaignId: string,
+    adAccountId: string
+  ): Promise<{ id: string }> {
+    return callMetaApi<{ id: string }>('duplicate_campaign', {
+      campaign_id: campaignId,
+      ad_account_id: adAccountId,
+    });
   }
 
   /**

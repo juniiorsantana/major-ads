@@ -88,7 +88,13 @@ serve(async (req: Request) => {
                 break;
             case 'campaigns_with_insights':
                 if (!params?.ad_account_id) throw new Error("ad_account_id required");
-                data = await metaService.getCampaignsWithInsights(params.ad_account_id);
+                // [FIX] Passar parâmetros de data do frontend para o serviço
+                // Permite que o filtro de período da página de campanhas funcione
+                data = await metaService.getCampaignsWithInsights(params.ad_account_id, {
+                    ...(params.date_preset ? { date_preset: params.date_preset } : {}),
+                    ...(params.date_start ? { date_start: params.date_start } : {}),
+                    ...(params.date_end ? { date_end: params.date_end } : {}),
+                });
                 break;
             case 'insights':
                 if (!params?.ad_account_id) throw new Error("ad_account_id required");
@@ -117,6 +123,11 @@ serve(async (req: Request) => {
                 if (!params?.campaign_id) throw new Error("campaign_id required");
                 if (!payload) throw new Error("Request body required for update_campaign");
                 data = await metaService.updateCampaign(params.campaign_id, payload);
+                break;
+            case 'duplicate_campaign':
+                if (!params?.campaign_id) throw new Error("campaign_id required");
+                if (!params?.ad_account_id) throw new Error("ad_account_id required");
+                data = await metaService.duplicateCampaign(params.campaign_id, params.ad_account_id);
                 break;
 
             default:

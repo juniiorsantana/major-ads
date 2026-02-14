@@ -3,7 +3,7 @@ import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 // Constants
 export const VALID_ACTIONS = [
     'businesses', 'adaccounts', 'pages', 'instagram_accounts',
-    'campaigns', 'campaigns_with_insights', 'create_campaign', 'update_campaign',
+    'campaigns', 'campaigns_with_insights', 'create_campaign', 'update_campaign', 'duplicate_campaign',
     'insights', 'insights_timeseries'
 ] as const;
 

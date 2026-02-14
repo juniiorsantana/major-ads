@@ -9,12 +9,24 @@ import {
     Play,
     TrendingUp,
     TrendingDown,
+    Loader2,
+    Copy,
+    Edit3,
+    MessageCircle,
+    AlertTriangle,
+    CheckCircle2,
 } from 'lucide-react';
+// [REDESIGN] Helper reutilizável para detecção de campanhas de mensagem
+import { isMessageCampaign, getMessageConversations } from '../../utils/campaignHelpers';
 
 interface CampaignTableProps {
     campaigns: Campaign[];
     onView?: (id: string) => void;
     onToggleStatus?: (id: string) => void;
+    onEditBudget?: (campaign: Campaign) => void;
+    onDuplicate?: (campaign: Campaign) => void;
+    togglingIds?: Set<string>;
+    duplicatingIds?: Set<string>;
 }
 
 type SortDirection = 'asc' | 'desc';
@@ -40,15 +52,6 @@ const formatNumber = (value: number): string => {
     return value.toLocaleString('pt-BR');
 };
 
-const MiniSparkline: React.FC<{ trend: 'up' | 'down' | 'neutral' }> = ({ trend }) => {
-    if (trend === 'neutral') return null;
-    return trend === 'up' ? (
-        <TrendingUp size={14} className="text-emerald-500" />
-    ) : (
-        <TrendingDown size={14} className="text-rose-500" />
-    );
-};
-
 const ProgressBar: React.FC<{ percent: number }> = ({ percent }) => {
     const color =
         percent >= 90 ? 'bg-rose-500' : percent >= 70 ? 'bg-amber-500' : 'bg-emerald-500';
@@ -70,6 +73,10 @@ const CampaignTable: React.FC<CampaignTableProps> = ({
     campaigns,
     onView,
     onToggleStatus,
+    onEditBudget,
+    onDuplicate,
+    togglingIds = new Set(),
+    duplicatingIds = new Set(),
 }) => {
     const [sortBy, setSortBy] = useState<CampaignSortBy>('spend');
     const [sortDir, setSortDir] = useState<SortDirection>('desc');
@@ -148,8 +155,9 @@ const CampaignTable: React.FC<CampaignTableProps> = ({
                             <th className="text-left px-4 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">
                                 <SortHeader column="spend" label="Investido" />
                             </th>
+                            {/* [REDESIGN] Header da coluna ROAS agora inclui "/ Conversas" */}
                             <th className="text-left px-4 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">
-                                <SortHeader column="roas" label="ROAS" />
+                                <SortHeader column="roas" label="ROAS / Conversas" />
                             </th>
                             <th className="text-left px-4 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">
                                 Impressões
@@ -172,7 +180,13 @@ const CampaignTable: React.FC<CampaignTableProps> = ({
                         {sortedCampaigns.map((campaign) => {
                             const status = STATUS_BADGE[campaign.status];
                             const roas = campaign.roas ?? 0;
-                            const roasTrend = roas >= 3 ? 'up' : roas >= 2 ? 'neutral' : 'down';
+                            const isToggling = togglingIds.has(campaign.id);
+                            const isDuplicating = duplicatingIds.has(campaign.id);
+                            // [REDESIGN] Detecção de campanha de mensagem
+                            const isMsgCampaign = isMessageCampaign(campaign);
+                            const msgConversations = isMsgCampaign ? getMessageConversations(campaign) : 0;
+                            // [REDESIGN] Indicador ROAS: <1.0 alerta, ≥1.0 check
+                            const roasIndicator = roas < 1.0 ? 'alert' : 'ok';
 
                             return (
                                 <tr
@@ -188,10 +202,20 @@ const CampaignTable: React.FC<CampaignTableProps> = ({
                                         </span>
                                     </td>
 
-                                    {/* Nome */}
+                                    {/* [REDESIGN] Nome — com badge 📱 para campanhas de mensagem */}
                                     <td className="px-4 py-3">
-                                        <div className="font-medium text-slate-900 max-w-[200px] truncate">
-                                            {campaign.name}
+                                        <div className="flex items-center gap-1.5">
+                                            <div className="font-medium text-slate-900 max-w-[200px] truncate">
+                                                {campaign.name}
+                                            </div>
+                                            {isMsgCampaign && (
+                                                <span
+                                                    className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold shrink-0"
+                                                    style={{ backgroundColor: '#dbeafe', color: '#1e40af' }}
+                                                >
+                                                    📱
+                                                </span>
+                                            )}
                                         </div>
                                         <div className="text-xs text-slate-500">
                                             {campaign.objective}
@@ -203,14 +227,29 @@ const CampaignTable: React.FC<CampaignTableProps> = ({
                                         {formatCurrency(campaign.spend)}
                                     </td>
 
-                                    {/* ROAS */}
+                                    {/* [REDESIGN] ROAS / Conversas — lógica condicional */}
                                     <td className="px-4 py-3">
-                                        <div className="flex items-center gap-1">
-                                            <span className="font-medium text-slate-900">
-                                                {roas.toFixed(1)}x
-                                            </span>
-                                            <MiniSparkline trend={roasTrend} />
-                                        </div>
+                                        {isMsgCampaign ? (
+                                            // Campanha de mensagem: mostra ícone chat + número de conversas
+                                            <div className="flex items-center gap-1.5">
+                                                <MessageCircle size={14} className="text-blue-500" />
+                                                <span className="font-medium text-slate-900">
+                                                    {formatNumber(msgConversations)}
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            // Campanha normal: mostra ROAS + indicador visual
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="font-medium text-slate-900">
+                                                    {roas.toFixed(1)}x
+                                                </span>
+                                                {roasIndicator === 'alert' ? (
+                                                    <AlertTriangle size={14} className="text-orange-500" />
+                                                ) : (
+                                                    <CheckCircle2 size={14} className="text-emerald-500" />
+                                                )}
+                                            </div>
+                                        )}
                                     </td>
 
                                     {/* Impressões */}
@@ -233,7 +272,7 @@ const CampaignTable: React.FC<CampaignTableProps> = ({
                                         <ProgressBar percent={campaign.budget_spent_percent ?? 0} />
                                     </td>
 
-                                    {/* Ações */}
+                                    {/* Ações — preservadas do CRUD existente */}
                                     <td className="px-4 py-3">
                                         <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button
@@ -245,16 +284,38 @@ const CampaignTable: React.FC<CampaignTableProps> = ({
                                             </button>
                                             <button
                                                 onClick={() => onToggleStatus?.(campaign.id)}
-                                                className={`p-1.5 rounded-lg transition-colors ${campaign.status === 'ACTIVE'
-                                                        ? 'hover:bg-amber-50 text-amber-500 hover:text-amber-600'
-                                                        : 'hover:bg-emerald-50 text-emerald-500 hover:text-emerald-600'
+                                                disabled={isToggling || campaign.status === 'ARCHIVED'}
+                                                className={`p-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${campaign.status === 'ACTIVE'
+                                                    ? 'hover:bg-amber-50 text-amber-500 hover:text-amber-600'
+                                                    : 'hover:bg-emerald-50 text-emerald-500 hover:text-emerald-600'
                                                     }`}
                                                 title={campaign.status === 'ACTIVE' ? 'Pausar' : 'Ativar'}
                                             >
-                                                {campaign.status === 'ACTIVE' ? (
+                                                {isToggling ? (
+                                                    <Loader2 size={16} className="animate-spin" />
+                                                ) : campaign.status === 'ACTIVE' ? (
                                                     <Pause size={16} />
                                                 ) : (
                                                     <Play size={16} />
+                                                )}
+                                            </button>
+                                            <button
+                                                onClick={() => onEditBudget?.(campaign)}
+                                                className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-500 hover:text-blue-600 transition-colors"
+                                                title="Editar Budget"
+                                            >
+                                                <Edit3 size={16} />
+                                            </button>
+                                            <button
+                                                onClick={() => onDuplicate?.(campaign)}
+                                                disabled={isDuplicating}
+                                                className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors disabled:opacity-50"
+                                                title="Duplicar"
+                                            >
+                                                {isDuplicating ? (
+                                                    <Loader2 size={16} className="animate-spin" />
+                                                ) : (
+                                                    <Copy size={16} />
                                                 )}
                                             </button>
                                         </div>

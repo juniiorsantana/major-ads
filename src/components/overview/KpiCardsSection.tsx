@@ -7,7 +7,7 @@ import { KpiMetricKey, KpiMetricConfig, KpiCardData } from '../../types';
 
 // Metric configurations
 export const KPI_METRICS: KpiMetricConfig[] = [
-    { key: 'spend', label: 'Gasto Total', format: 'currency', color: '#f97316' }, // Brand Orange
+    { key: 'spend', label: 'Gasto Total', format: 'currency', color: '#4B46ED' }, // Brand Blue (Logo)
     { key: 'impressions', label: 'Impressões', format: 'number', color: '#8b5cf6' },
     { key: 'cpm', label: 'CPM', format: 'currency', color: '#06b6d4' },
     { key: 'cpc', label: 'CPC', format: 'currency', color: '#f59e0b' },

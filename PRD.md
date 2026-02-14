@@ -25,13 +25,15 @@
   - `meta-api`: Proxy para Graph API (businesses, ad accounts, pages, Instagram, campaigns)
 - [x] Suporte a modo Mock (fallback quando não configurado)
 - [x] Armazenamento seguro de tokens no user_metadata
+- [x] Renovação automática de Token (Refresh Token)
+- [x] Integração Real com API de Insights (KPIs, Charts)
 
 #### 3. Dashboard - Visão Geral
 - [x] Barra de filtros (período, comparação, agrupamento)
 - [x] Cards KPI draggable com sparklines
-- [x] Gráfico temporal interativo (Recharts)
-- [x] Distribuição de budget (por campanha, objetivo, plataforma, audiência)
-- [x] Alertas e recomendações
+- [x] Gráfico temporal interativo (Recharts) - **Dados Reais**
+- [x] Distribuição de budget (por campanha, objetivo, plataforma, audiência) - **Dados Reais**
+- [x] Alertas e recomendações (Mock Data)
 
 #### 4. Gestão de Campanhas
 - [x] Listagem de campanhas (cards e tabela)
@@ -65,10 +67,10 @@
 | Alertas | ❌ Mock Data (Pendente) |
 | Insights de Campanha | ✅ Implementado |
 
-> **Problema:** O dashboard exibe apenas dados simulados. Não há integração real com insights da Meta API.
+> **Status:** O dashboard exibe dados reais da Meta API para KPIs, gráficos temporais e distribuição de budget. Os alertas ainda utilizam dados simulados.
 
 ### 2. Meta API - Endpoints Faltantes
-- [x] `/insights` para métricas de campanha
+- [x] `/insights` para métricas de campanha (KPIs e Time Series)
 - [ ] `/adsets` para conjuntos de anúncios
 - [ ] `/ads` para anúncios individuais
 - [ ] Filtros temporais na API
@@ -102,7 +104,7 @@
 
 | Prioridade | Melhoria | Justificativa |
 |------------|----------|---------------|
-| **Crítica** | Renovação automática de token | Tokens Facebook expiram |
+| Resolvido | Renovação automática de token | Tokens Facebook expiram |
 | Alta | Rate limiting nas Edge Functions | Prevenir abuso |
 | Alta | Validação de inputs no backend | XSS/Injection |
 | Média | Logs de auditoria | Rastreabilidade |
@@ -272,11 +274,11 @@ PRIVATE_SERVICE_ROLE_KEY=xxx
 
 ## Próximos Passos Recomendados
 
-### Imediato (Sprint 1) - 2 semanas
-1. ⚡ **Implementar Insights API** no backend
-2. ⚡ **Conectar Dashboard com dados reais**
-3. 🔒 **Renovação automática de token Facebook**
-4. 🎨 **Adicionar skeleton loaders**
+### Imediato (Sprint 1) - Concluído ✅
+1. [x] ⚡ **Implementar Insights API** no backend
+2. [x] ⚡ **Conectar Dashboard com dados reais**
+3. [x] 🔒 **Renovação automática de token Facebook**
+4. [ ] 🎨 **Adicionar skeleton loaders** (Pendente)
 
 ### Curto Prazo (Sprint 2-3) - 4 semanas
 1. 📊 **Detalhes de Campanha** - página individual

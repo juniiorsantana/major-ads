@@ -47,7 +47,15 @@ export interface Campaign {
   roas?: number;
   conversions?: number;
   ctr?: number;
+  cpc?: number;
+  cpm?: number;
+  reach?: number;
+  frequency?: number;
   budget_spent_percent?: number;
+  // Campos para detecção de campanhas de mensagem (retornados pelo backend)
+  optimization_goal?: string;
+  messaging_app?: string;
+  messaging_conversations?: number;
 }
 
 export type CampaignViewMode = 'cards' | 'table';

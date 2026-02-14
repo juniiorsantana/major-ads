@@ -192,3 +192,51 @@ export function useUpdateCampaignStatus() {
         },
     });
 }
+
+/**
+ * Mutation: Atualizar budget da campanha
+ */
+export function useUpdateCampaignBudget() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({
+            campaignId,
+            budgetType,
+            amountCents,
+        }: {
+            campaignId: string;
+            budgetType: 'daily_budget' | 'lifetime_budget';
+            amountCents: number;
+        }) => metaService.updateCampaignBudget(campaignId, budgetType, amountCents),
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: metaQueryKeys.all,
+                predicate: (query) => query.queryKey.includes('campaigns'),
+            });
+        },
+    });
+}
+
+/**
+ * Mutation: Duplicar campanha
+ */
+export function useDuplicateCampaign() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({
+            campaignId,
+            adAccountId,
+        }: {
+            campaignId: string;
+            adAccountId: string;
+        }) => metaService.duplicateCampaign(campaignId, adAccountId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: metaQueryKeys.all,
+                predicate: (query) => query.queryKey.includes('campaigns'),
+            });
+        },
+    });
+}
